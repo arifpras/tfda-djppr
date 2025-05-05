@@ -37,7 +37,6 @@ To strengthen DJPPR’s analytical capabilities through:
     <ul>
       <li>📁 <strong>datasets/</strong> — Cleaned & processed data (time series, yield changes)</li>
       <li>📁 <strong>notebooks/</strong> — Exploratory analysis, IRF modeling, visualizations</li>
-      <li>📁 <strong>models/</strong> — Crisis detection & forecasting tools</li>
       <li>📁 <strong>scripts/</strong> — Automation for dashboards, alerts, and reporting</li>
       <li>📁 <strong>reports/</strong> — Policy briefs, visual assets, publications</li>
       <li>📄 <strong>README.md</strong> — You are here!</li>
