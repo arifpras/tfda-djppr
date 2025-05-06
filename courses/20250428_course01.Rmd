@@ -1,0 +1,416 @@
+---
+title: "TF DA DJPPR: 3-session Workshop"
+author: "Arif P. Sulistiono / @arifpras"
+date: "2025-04-28"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r clean_environment, include=FALSE}
+# Clean the environment
+
+rm(list=ls())
+ls()
+```
+
+```{r libraries, include=FALSE}
+# Library
+
+install.packages("tidyverse")
+library()
+
+# install.packages("pacman")
+pacman::p_load(tidyverse, readr, magrittr, ggthemes, tictoc, janitor, stringr)
+```
+
+```{r directories}
+# Open directory: ctrl + shift + H
+getwd()
+```
+
+```{r load_01}
+# data/2023-24/gws/merged_gw.csv --> raw
+
+tic()
+
+# Method 1: Directly read the CSV file from URL
+players00 <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/refs/heads/master/data/2023-24/gws/merged_gw.csv")
+
+toc()
+
+# View the first few rows
+head(players00)
+```
+
+```{r load_2}
+tic()
+# Method 2: Download first, then read
+download.file(url = "https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/refs/heads/master/data/2023-24/gws/merged_gw.csv",
+              destfile = "merged_gw.csv")
+
+# Then read the downloaded file
+players00 <- read.csv("merged_gw.csv")
+toc()
+```
+
+```{r load_3}
+# Method 3: Using readr from tidyverse
+# if (!require("readr")) install.packages("readr")
+# library(readr)
+
+tic()
+players00 <- read_csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/refs/heads/master/data/2023-24/gws/merged_gw.csv", show_col_types = FALSE)
+toc()
+
+# spec(players00)
+```
+
+```{r glim_players}
+# str(players00)
+glimpse(players00)
+```
+
+```{r is_na}
+colSums(is.na(players00))
+```
+
+
+```{r load_teams}
+# https://www.premierleague.com/news/3537201
+
+teams00 <- read_csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/refs/heads/master/data/2023-24/teams.csv", show_col_types = FALSE)
+```
+
+```{r glim_teams}
+glimpse(teams00)
+```
+
+# Data Cleaning
+
+```{r teams01_combine}
+# select()
+
+teams01 <- teams00 %>% 
+  select(id, name, short_name)
+```
+
+```{r players01}
+# right_join(., by = c("" = ""))
+# rename (new_name = old_name)
+# relocate
+
+players01 <- players00 %>%
+  left_join(teams01, by = c("opponent_team" = "id")) %>%
+  rename(
+    "name" = name.x,
+    "opponent_long" = name.y,
+    "opponent_short" = short_name
+  ) %>%
+  relocate(opponent_long, opponent_short, .after = opponent_team)
+```
+
+```{r mutate01}
+# mutate
+# unselected
+# janitor::clean_names
+
+players02 <- players01 %>% 
+  mutate("value_dec" = value/10) %>% 
+  relocate(value_dec, .after = value) %>% 
+  select(-value) %>% 
+  janitor::clean_names()
+```
+
+```{r arrange01}
+# arrange
+# recode old = new
+
+players03 <- players02 %>%
+  arrange(team, position, name, gw) %>%
+  mutate(position_long = recode (
+    position,
+    GK = "01gk ",
+    DEF = "02def ",
+    MID = "03mid ",
+    FWD = "04fwd "
+  )) %>% 
+  relocate(position_long, .after = position)
+
+unique(players03$position_long)
+```
+
+```{r if_else}
+# if_else
+# str_squish
+
+players04 <- players03 %>% 
+  mutate(was_home_dv = if_else(was_home, 1, 0)) %>% 
+  mutate(across(where(is.character), str_squish)) %>% 
+  arrange(team, desc(position_long), name, gw)
+
+unique(players04$position_long)
+```
+
+```{r funct_squish}
+# function
+
+squish_all_chars <- function(df) {
+  message("Squishing all character columns...")
+  df %>% mutate(across(where(is.character), str_squish))
+}
+
+```
+
+```{r squish_chr}
+players05 <- squish_all_chars(players03)
+
+unique(players05$position_long)
+```
+
+```{r filter01}
+(players06 <- players04 %>%
+  filter(was_home_dv == 1))
+
+(players06 <- players04 %>%
+  filter(team == "MUN" | opponent_short == "NFO"))
+
+(players06 <- players04 %>%
+  filter(was_home_dv == 1 & team == "Man Utd"))
+
+(players06 <- players04 %>%
+  filter(was_home_dv == 1, team == "Man Utd"))
+
+(players06 <- players04 %>%
+  filter(was_home_dv == 1, team %in% c("Arsenal", "Liverpool", "Man City")))
+
+(players06 <- players04 %>%
+  filter(was_home_dv == 1, gw >= 19))
+
+(players06 <- players04 %>%
+  filter(gw >= 10 & gw <= 20))
+
+(players06 <- players04 %>%
+    filter(between(gw, 10, 20)))
+
+# specific column
+(players06 <- players04 %>%
+  filter(is.na(position_long)))
+
+# all columns
+(players06 <- players04 %>%
+  filter(if_any(everything(), is.na)))
+```
+
+```{r grouping01}
+
+(
+  players07 <- players04 %>%
+    group_by(team) %>%
+    mutate(points_avgteam = mean(total_points)) %>%
+    ungroup()
+)
+
+(
+  players07 <- players04 %>%
+    group_by(team) %>%
+    summarise(points_avgteam = mean(total_points)) %>%
+    ungroup() %>%
+    arrange(desc(points_avgteam))
+)
+
+(
+  players07 <- players04 %>%
+    group_by(team, name, position) %>%
+    summarise(
+      points_sumplayer = sum(total_points),
+      minutes_played = sum(minutes), 
+      .groups = "drop") %>% 
+    ungroup() %>%
+    arrange(desc(points_sumplayer))
+)
+```
+
+```{r slicing01}
+(
+  players08 <- players07 %>%
+    relocate(position, .before = team) %>% 
+    group_by(position, team) %>%
+    arrange(desc(points_sumplayer)) %>%
+    slice_head(n=2) %>% 
+    ungroup()
+)
+
+(
+  players08 <- players07 %>%
+    relocate(position, .before = team) %>% 
+    group_by(position, team) %>%
+    slice_max(order_by = points_sumplayer, n = 2) %>% 
+    ungroup()
+)
+
+```
+
+Challenge:
+Find the Top 20 Players per Position
+(based on their average points per game, not total points)
+
+```{r slicing02}
+(
+  players09 <- players04 %>%
+    filter(minutes != 0) %>%
+    group_by(team, position_long, name) %>%
+    summarise(
+      count_played = n(),
+      minutes_played = sum(minutes),
+      points_sumplayer = sum(total_points),
+      points_avgplayer = mean(total_points),
+      .groups = "drop"
+    ) %>%
+    relocate(position_long, name, team) %>%
+    group_by(position_long) %>%
+    slice_max(order_by = points_avgplayer, n = 20) %>%
+    ungroup()
+)
+```
+
+```{r pivot_wide}
+(
+  players10 <- players04 %>%
+    filter(minutes != 0) %>% 
+    group_by(team, position, name) %>%
+    summarise(
+      count_played = n(),
+      minutes_played = sum(minutes),
+      points_sumplayer = sum(total_points),
+      points_avgplayer = mean(total_points),
+      value_avg = mean(value_dec),
+      ict_avg = mean(ict_index),
+      .groups = "drop") %>%
+    ungroup() %>% 
+    relocate(position, name, team) %>% 
+    group_by(position) %>% 
+    slice_max(order_by = points_sumplayer, n = 10) %>%
+    # mutate(position_rank = row_number(desc(points_sumplayer))) %>% 
+    mutate(position_rank = min_rank(desc(points_sumplayer))) %>% 
+    ungroup()
+)
+
+(
+  players11 <- players10 %>%
+    pivot_longer(
+      cols = count_played:position_rank,
+      names_to = "variable01",
+      values_to = "value01"
+    )
+)
+```
+
+```{r saving}
+writexl::write_xlsx(x = list(table_wide = players10, table_long = players11),
+                    path = "fpldataset.xlsx")
+
+# write_csv(players10, "fpldataset_tablewide.csv")
+```
+
+# Data Viz
+
+```{r plot01_black}
+# Load nord palette (if needed)
+# pacman::p_load(nord, scico, colorspace)
+
+plot01 <- players10 %>%
+  mutate(position = fct_relevel(position, "GK", "DEF", "MID", "FWD")) %>%
+  group_by(position) %>%
+  slice_max(order_by = points_sumplayer, n = 5) %>%
+  ungroup() %>%
+  arrange(desc(points_sumplayer)) %>%
+  ggplot() +
+  geom_point(
+    aes(
+      x = reorder(name, ict_avg),
+      y = points_sumplayer,
+      color = factor(team),
+      size = ict_avg,
+      shape = position
+    )
+  ) +
+  scale_shape_manual(values = c("GK" = 17, "DEF" = 15, "MID" = 18, "FWD" = 3)) +
+  colorspace::scale_color_discrete_qualitative(palette = "Dark 3") +
+  scale_size_continuous(range = c(1, 5)) +
+  coord_flip() +
+  labs(
+    title = "Who Ruled the Pitch?",
+    subtitle = "Top 5 Players by Position in PL 2023/2024\n",
+    caption = "\nVisualized by Task Force Data Analytics — DJPPR | Data: github.com/vaastav | April 2025",
+    x = "Ranked by ICT Index\n",
+    y = "\nTotal Points"
+  ) +
+  guides(
+    size = guide_legend("ICT Index", override.aes = list(color = "white")),
+    color = guide_legend("Team"),
+    shape = guide_legend("Position", override.aes = list(color = "white"))
+
+  ) +
+  theme_minimal(base_family = "sans") +
+  theme(
+    plot.background = element_rect(fill = "#1b1f23", color = NA),
+    panel.background = element_rect(fill = "#1b1f23", color = NA),
+    panel.grid.major.y = element_line(color = "#22282C"),
+    panel.grid.major.x = element_line(color = "#22282C"),
+    panel.grid.minor = element_blank(),
+
+    plot.title = element_text(hjust = 0, size = 18, face = "bold", color = "white"),
+    plot.subtitle = element_text(hjust = 0, size = 16, color = "gray90"),
+    plot.caption = element_text(hjust = 0, size = 11, color = "gray70"),
+    plot.title.position = "plot",
+    plot.caption.position = "plot",
+
+    axis.text.x = element_text(size = 12, color = "gray80"),
+    axis.text.y = element_text(size = 12, color = "gray80"),
+    axis.title.x = element_text(size = 11, color = "gray70"),
+    axis.title.y = element_text(size = 11, color = "gray70"),
+    axis.ticks = element_blank(),
+
+    legend.background = element_rect(fill = "#1b1f23", color = NA),
+    legend.title = element_text(size = 11, color = "white"),
+    legend.text = element_text(size = 11, color = "gray85"),
+    legend.key = element_rect(fill = "#1b1f23"),
+    legend.key.size = unit(0.5, "cm"),
+    legend.spacing = unit(1, "cm"),
+    legend.position = "right",
+
+    strip.text.x = element_text(size = 12, color = "white"),
+    panel.ontop = FALSE,
+    panel.spacing = unit(1, "lines")
+  )
+
+plot01
+
+```
+
+```{r}
+ggsave(
+  filename = "20250428_plot01_darkmode.png",
+  plot = plot01,
+  width = 3840,
+  height = 2160,
+  units = "px",
+  dpi = 300
+)
+```
+
+
+```{r saving_plot}
+# ggsave(
+#   filename = "20250428_rcourse_plot01.pdf",
+#   plot = plot01,
+#   device = cairo_pdf,
+#   width = 297,
+#   height = 210,
+#   units = "mm"
+# )
+```
+
+
+--- END ---
