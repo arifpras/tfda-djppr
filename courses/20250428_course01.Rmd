@@ -391,7 +391,7 @@ plot01
 
 ```{r}
 ggsave(
-  filename = "20250428_plot01_darkmode.png",
+  filename = "20250428_course01_plot01.png",
   plot = plot01,
   width = 3840,
   height = 2160,
