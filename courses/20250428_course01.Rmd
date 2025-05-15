@@ -17,8 +17,8 @@ ls()
 ```{r libraries, include=FALSE}
 # Library
 
-install.packages("tidyverse")
-library()
+# install.packages("tidyverse")
+# library()
 
 # install.packages("pacman")
 pacman::p_load(tidyverse, readr, magrittr, ggthemes, tictoc, janitor, stringr)
@@ -136,8 +136,11 @@ players03 <- players02 %>%
     FWD = "04fwd "
   )) %>% 
   relocate(position_long, .after = position)
+  # distinct(position_long)
 
-unique(players03$position_long)
+
+# players03
+# unique(players03$position_long)
 ```
 
 ```{r if_else}
@@ -173,31 +176,31 @@ unique(players05$position_long)
   filter(was_home_dv == 1))
 
 (players06 <- players04 %>%
-  filter(team == "MUN" | opponent_short == "NFO"))
-
+  filter(team == "Man Utd" | opponent_short == "NFO"))
+#
 (players06 <- players04 %>%
   filter(was_home_dv == 1 & team == "Man Utd"))
-
+#
 (players06 <- players04 %>%
   filter(was_home_dv == 1, team == "Man Utd"))
-
+#
 (players06 <- players04 %>%
   filter(was_home_dv == 1, team %in% c("Arsenal", "Liverpool", "Man City")))
-
+#
 (players06 <- players04 %>%
   filter(was_home_dv == 1, gw >= 19))
-
+#
 (players06 <- players04 %>%
   filter(gw >= 10 & gw <= 20))
-
+#
 (players06 <- players04 %>%
     filter(between(gw, 10, 20)))
-
-# specific column
+#
+# # specific column
 (players06 <- players04 %>%
   filter(is.na(position_long)))
-
-# all columns
+#
+# # all columns
 (players06 <- players04 %>%
   filter(if_any(everything(), is.na)))
 ```
@@ -242,7 +245,7 @@ unique(players05$position_long)
 )
 
 (
-  players08 <- players07 %>%
+  players08b <- players07 %>%
     relocate(position, .before = team) %>% 
     group_by(position, team) %>%
     slice_max(order_by = points_sumplayer, n = 2) %>% 
@@ -303,6 +306,13 @@ Find the Top 20 Players per Position
       names_to = "variable01",
       values_to = "value01"
     )
+)
+
+(
+  players12 <- players11 %>% 
+    pivot_wider(
+      names_from = variable01, 
+      values_from = value01)
 )
 ```
 

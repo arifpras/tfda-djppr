@@ -20,7 +20,7 @@ ls()
 install.packages("tidyverse")
 library()
 
-# install.packages("pacman")
+install.packages("pacman")
 pacman::p_load(tidyverse, readr, magrittr, ggthemes, tictoc, janitor, stringr)
 ```
 
