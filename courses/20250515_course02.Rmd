@@ -1,0 +1,125 @@
+---
+title: "TF DA DJPPR: 3-session Workshop"
+author: "Arif P. Sulistiono / @arifpras"
+date: "2025-04-28"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r clean_environment, include=FALSE}
+# Clean the environment
+
+rm(list=ls())
+ls()
+```
+
+```{r libraries, include=FALSE}
+# Library
+
+install.packages("tidyverse")
+library()
+
+# install.packages("pacman")
+pacman::p_load(tidyverse, readr, magrittr, ggthemes, tictoc, janitor, stringr)
+```
+
+```{r directories}
+# Open directory: ctrl + shift + H
+getwd()
+```
+
+```{r load_01}
+# data/2023-24/gws/merged_gw.csv --> raw
+
+tic()
+
+# Method 1: Directly read the CSV file from URL
+players00 <- read.csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/refs/heads/master/data/2023-24/gws/merged_gw.csv")
+
+toc()
+
+# View the first few rows
+head(players00)
+```
+
+```{r load_2}
+tic()
+# Method 2: Download first, then read
+download.file(url = "https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/refs/heads/master/data/2023-24/gws/merged_gw.csv",
+              destfile = "merged_gw.csv")
+
+# Then read the downloaded file
+players00 <- read.csv("merged_gw.csv")
+toc()
+```
+
+```{r load_3}
+# Method 3: Using readr from tidyverse
+# if (!require("readr")) install.packages("readr")
+# library(readr)
+
+tic()
+players00 <- read_csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/refs/heads/master/data/2023-24/gws/merged_gw.csv", show_col_types = FALSE)
+toc()
+
+# spec(players00)
+```
+
+```{r glim_players}
+# str(players00)
+glimpse(players00)
+```
+
+```{r is_na}
+colSums(is.na(players00))
+```
+
+
+```{r load_teams}
+# https://www.premierleague.com/news/3537201
+
+teams00 <- read_csv("https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/refs/heads/master/data/2023-24/teams.csv", show_col_types = FALSE)
+```
+
+```{r glim_teams}
+glimpse(teams00)
+```
+
+# Data Cleaning
+
+```{r teams01_combine}
+# select()
+
+teams01 <- teams00 %>% 
+  select(id, name, short_name)
+```
+
+```{r players01}
+# right_join(., by = c("" = ""))
+# rename (new_name = old_name)
+# relocate
+
+players01 <- players00 %>%
+  left_join(teams01, by = c("opponent_team" = "id")) %>%
+  rename(
+    "name" = name.x,
+    "opponent_long" = name.y,
+    "opponent_short" = short_name
+  ) %>%
+  relocate(opponent_long, opponent_short, .after = opponent_team)
+```
+
+```{r mutate01}
+# mutate
+# unselected
+# janitor::clean_names
+
+players02 <- players01 %>% 
+  mutate("value_dec" = value/10) %>% 
+  relocate(value_dec, .after = value) %>% 
+  select(-value) %>% 
+  janitor::clean_names()
+```
+
+--- END ---
