@@ -17,8 +17,8 @@ ls()
 ```{r libraries, include=FALSE}
 # Library
 
-install.packages("tidyverse")
-library()
+# install.packages("tidyverse")
+# library()
 
 install.packages("pacman")
 pacman::p_load(tidyverse, readr, magrittr, ggthemes, tictoc, janitor, stringr)
