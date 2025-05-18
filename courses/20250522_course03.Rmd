@@ -314,7 +314,6 @@ Find the Top 20 Players per Position
 )
 ```
 
-
 ```{r saving}
 writexl::write_xlsx(x = list(table_wide = players10, table_long = players11),
                     path = "fpldataset.xlsx")
