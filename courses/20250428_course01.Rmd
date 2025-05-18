@@ -138,7 +138,6 @@ players03 <- players02 %>%
   relocate(position_long, .after = position)
   # distinct(position_long)
 
-
 # players03
 # unique(players03$position_long)
 ```
@@ -162,7 +161,6 @@ squish_all_chars <- function(df) {
   message("Squishing all character columns...")
   df %>% mutate(across(where(is.character), str_squish))
 }
-
 ```
 
 ```{r squish_chr}
@@ -177,30 +175,30 @@ unique(players05$position_long)
 
 (players06 <- players04 %>%
   filter(team == "Man Utd" | opponent_short == "NFO"))
-#
+
 (players06 <- players04 %>%
   filter(was_home_dv == 1 & team == "Man Utd"))
-#
+
 (players06 <- players04 %>%
   filter(was_home_dv == 1, team == "Man Utd"))
-#
+
 (players06 <- players04 %>%
   filter(was_home_dv == 1, team %in% c("Arsenal", "Liverpool", "Man City")))
-#
+
 (players06 <- players04 %>%
   filter(was_home_dv == 1, gw >= 19))
-#
+
 (players06 <- players04 %>%
   filter(gw >= 10 & gw <= 20))
-#
+
 (players06 <- players04 %>%
     filter(between(gw, 10, 20)))
-#
-# # specific column
+
+# specific column
 (players06 <- players04 %>%
   filter(is.na(position_long)))
-#
-# # all columns
+
+# all columns
 (players06 <- players04 %>%
   filter(if_any(everything(), is.na)))
 ```
@@ -236,7 +234,7 @@ unique(players05$position_long)
 
 ```{r slicing01}
 (
-  players08 <- players07 %>%
+  players08a <- players07 %>%
     relocate(position, .before = team) %>% 
     group_by(position, team) %>%
     arrange(desc(points_sumplayer)) %>%
@@ -251,7 +249,6 @@ unique(players05$position_long)
     slice_max(order_by = points_sumplayer, n = 2) %>% 
     ungroup()
 )
-
 ```
 
 Challenge:
@@ -314,6 +311,243 @@ Find the Top 20 Players per Position
       names_from = variable01, 
       values_from = value01)
 )
+```
+
+```{r case_when}
+players13a <- players12 %>%
+  mutate(worthiness = points_sumplayer / value_avg) %>%
+  group_by(position) %>%
+  arrange(desc(points_sumplayer), .by_group = TRUE) %>%
+  ungroup() %>%
+  mutate(
+    worthlevel = case_when(
+      worthiness >= 30 ~ "super",
+      worthiness < 30 & worthiness >= 25 ~ "mid_upper",
+      worthiness < 25 & worthiness >= 20 ~ "mid_lower",
+      .default = "lower"
+    )
+  )
+
+players13b <- players12 %>%
+  mutate(worthiness = points_sumplayer / value_avg) %>%
+  group_by(position) %>%
+  arrange(desc(points_sumplayer), .by_group = TRUE) %>%
+  ungroup() %>%
+  mutate(
+    worthlevel = case_when(
+      worthiness >= 30 ~ "super",
+      worthiness >= 25 ~ "mid_upper",
+      worthiness >= 20 ~ "mid_lower",
+      TRUE             ~ "lower"
+    )
+  )
+```
+
+```{r group_modify}
+# Step 1: Lookup table for how many top players to keep per position
+top_n_lookup <- tibble(
+  position = c("DEF", "FWD", "MID", "GK"),
+  n_top = c(5, 3, 5, 2)
+)
+
+# Step 2: Compute worthiness, join with lookup, then slice_max
+players14 <- players12 %>%
+  mutate(worthiness = points_sumplayer / value_avg) %>%
+  inner_join(top_n_lookup, by = "position") %>%
+  group_by(position) %>%
+  group_modify( ~ slice_max(.x, order_by = worthiness, n = unique(.x$n_top))) %>%
+  ungroup() %>% 
+  mutate(total_price = sum(value_avg))
+```
+
+```{r worthiness_13}
+top_n_lookup <- tibble(
+  position = c("DEF", "FWD", "MID", "GK"),
+  n_top = c(5, 3, 5, 2)
+)
+
+# Step 1: Select top N per position
+players_pool <- players12 %>%
+  mutate(worthiness = points_sumplayer / value_avg) %>%
+  inner_join(top_n_lookup, by = "position") %>%
+  group_by(position) %>%
+  group_modify(~ slice_max(.x, order_by = worthiness, n = unique(.x$n_top))) %>%
+  ungroup()
+
+# Step 2: Enforce max 3 players per team using cumulative count
+players15 <- players_pool %>%
+  arrange(desc(worthiness)) %>%
+  group_by(team) %>%
+  mutate(team_count = row_number()) %>%
+  ungroup() %>%
+  filter(team_count <= 3) %>%
+  slice_head(n = 15)  # Just in case over-selection due to ties
+```
+
+```{r nolimit_budget}
+# Position quotas
+position_quota <- c(DEF = 5, MID = 5, FWD = 3, GK = 2)
+
+# Step 1: Compute worthiness & filter top 10 per position (to give options)
+candidate_pool <- players12 %>%
+  mutate(worthiness = points_sumplayer / value_avg) %>%
+  group_by(position) %>%
+  slice_max(order_by = worthiness, n = 10) %>%
+  ungroup() %>%
+  arrange(desc(worthiness))  # Highest worthiness first
+
+# Step 2: Initialize tracking variables
+players16 <- tibble()
+position_counts <- setNames(rep(0, length(position_quota)), names(position_quota))
+team_counts <- list()
+
+# Step 3: Loop through sorted candidates
+for (i in 1:nrow(candidate_pool)) {
+  player <- candidate_pool[i, ]
+
+  pos <- player$position
+  team <- player$team
+
+  # Check if position quota is already full
+  if (position_counts[pos] >= position_quota[pos]) next
+
+  # Check if team already has 3 players
+  team_counts[[team]] <- team_counts[[team]] %||% 0  # default to 0
+  if (team_counts[[team]] >= 3) next
+
+  # Add player to selection
+  players16 <- bind_rows(players16, player)
+  position_counts[pos] <- position_counts[pos] + 1
+  team_counts[[team]] <- team_counts[[team]] + 1
+
+  # Stop if we already have 15 players
+  if (nrow(players16) == 15) break
+}
+
+# Final check
+print(players16)
+```
+
+```{r worthiness_15}
+# === Config ===
+position_quota <- c(DEF = 5, MID = 5, FWD = 3, GK = 2)
+budget_limit <- 100
+
+# === Step 1: Worthiness & overfilter top candidates ===
+candidate_pool <- players12 %>%
+  mutate(worthiness = points_sumplayer / value_avg) %>%
+  # group_by(position) %>%
+  # slice_max(order_by = worthiness, n = 15) %>%  # overselect to allow constraint flexibility
+  # ungroup() %>%
+  arrange(desc(worthiness))  # highest worthiness first
+
+# === Step 2: Initialize ===
+players17 <- tibble()
+position_counts <- setNames(rep(0, length(position_quota)), names(position_quota))
+team_counts <- list()
+total_budget <- 0
+
+# === Step 3: Greedy constrained selection ===
+for (i in 1:nrow(candidate_pool)) {
+  player <- candidate_pool[i, ]
+  pos <- player$position
+  team <- player$team
+  value <- player$value_avg
+
+  # Check constraints
+  if (position_counts[pos] >= position_quota[pos]) next
+  team_counts[[team]] <- team_counts[[team]] %||% 0
+  if (team_counts[[team]] >= 3) next
+  if ((total_budget + value) > budget_limit) next
+
+  # Add player
+  players17 <- bind_rows(players17, player)
+  position_counts[pos] <- position_counts[pos] + 1
+  team_counts[[team]] <- team_counts[[team]] + 1
+  total_budget <- total_budget + value
+
+  # Stop if 15 players selected
+  if (nrow(players17) == 15) break
+}
+
+# === Final Check ===
+message("✅ Team selected:")
+print(players17)
+message("\nTotal players: ", nrow(players17))
+message("\nTotal points: ", sum(players17$points_sumplayer))
+message("Total budget used: ", total_budget)
+message("Players per team:")
+print(table(players17$team))
+message("Players per position:")
+print(table(players17$position))
+```
+
+```{r sumpoints_15}
+# === Config ===
+position_quota <- c("01gk" = 2, "02def" = 5, "03mid" = 5, "04fwd" = 3)
+budget_limit <- 100
+
+# === Step 1: Worthiness & overfilter top candidates ===
+candidate_pool <- players04 %>%
+    filter(minutes != 0) %>%
+    group_by(team, position_long, name) %>%
+    summarise(
+      count_played = n(),
+      minutes_played = sum(minutes),
+      points_sumplayer = sum(total_points),
+      points_avgplayer = mean(total_points),
+      value_avg = mean(value_dec),
+      ict_avg = mean(ict_index),
+      .groups = "drop"
+    ) %>%
+    relocate(position_long, name, team) %>%
+    group_by(position_long) %>%
+    slice_max(order_by = points_sumplayer, n = 20) %>%
+    ungroup()
+
+# === Step 2: Initialize ===
+players18 <- tibble()
+position_counts <- setNames(rep(0, length(position_quota)), names(position_quota))
+team_counts <- list()
+total_budget <- 0
+
+# === Step 3: Greedy constrained selection ===
+for (i in 1:nrow(candidate_pool)) {
+  player <- candidate_pool[i, ]
+  pos <- player$position_long
+  team <- player$team
+  value <- player$value_avg
+
+  # Check constraints
+  if (position_counts[pos] >= position_quota[pos]) next
+  team_counts[[team]] <- team_counts[[team]] %||% 0
+  if (team_counts[[team]] >= 3) next
+  if ((total_budget + value) > budget_limit) next
+
+  # Add player
+  players18 <- bind_rows(players18, player)
+  position_counts[pos] <- position_counts[pos] + 1
+  team_counts[[team]] <- team_counts[[team]] + 1
+  total_budget <- total_budget + value
+
+  # Stop if 15 players selected
+  if (nrow(players18) == 15) break
+}
+
+# === Final Check ===
+message("✅ Team selected:")
+print(players18)
+message("\nTotal players: ", nrow(players18))
+message("\nTotal points: ", sum(players18$points_sumplayer))
+message("Total budget used: ", total_budget)
+message("Players per team:")
+print(table(players18$team))
+message("Players per position:")
+print(table(players18$position_long))
+```
+
+```{r}
+# The name of the winning team was Jonas Sand Labakk's Onkel Blaa and it finished with a total points tally of 2,799.
 ```
 
 ```{r saving}
@@ -396,7 +630,6 @@ plot01 <- players10 %>%
   )
 
 plot01
-
 ```
 
 ```{r}
