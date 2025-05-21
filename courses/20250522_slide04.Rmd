@@ -144,6 +144,13 @@ knitr::include_url("https://emilhvitfeldt.github.io/r-color-palettes/discrete.ht
 ```
 ]
 
+.panel[.panel-name[🛻 ggsci]
+
+```{r echo = FALSE, fig.width = 6, fig.asp = 0.618, out.width = "100%", fig.align = "center", fig.retina = 3}
+knitr::include_url("https://cran.r-project.org/web/packages/ggsci/vignettes/ggsci.html#Discrete_color_palettes", height = "400px")
+```
+]
+
 ]
 
 .left[.footnote[.small[Honorable mention: https://coolors.co; https://colorhunt.co; https://leonardocolor.io]]]
@@ -191,3 +198,456 @@ To visualize your data, you assign variables to visual components—called **aes
 At a minimum, you need the dataset, a geom layer, and aesthetic mappings. Other components like `stat`, `position`, `coordinate`, `facet`, `scale`, and `theme` are optional—they have default behaviors that work in many common use cases.
 
 .left[.footnote[.small[Source: https://ggplot2.tidyverse.org/index.html; https://rstudio.github.io/cheatsheets/html/data-visualization.html]]]
+
+---
+
+# Load the Datasets
+
+.panelset[
+
+.panel[.panel-name[`players04`]
+
+```{r}
+pacman::p_load(tidyverse, gt, skimr)
+players04 <- read_csv("https://raw.githubusercontent.com/arifpras/tfda-djppr/refs/heads/main/courses/players04.csv", show_col_types = FALSE)
+
+players04 %>%
+  select(name, team, position, total_points, value_dec, gw) %>%
+  slice_head(n = 5)
+```
+]
+
+.panel[.panel-name[`players18`]
+
+```{r}
+pacman::p_load(tidyverse, DT, skimr)
+players18 <- read_csv("https://raw.githubusercontent.com/arifpras/tfda-djppr/refs/heads/main/courses/players18.csv", show_col_types = FALSE)
+
+players18 %>%
+  slice_head(n = 5)
+
+```
+]
+
+.panel[.panel-name[code: `dbcombine`]
+
+```{r}
+pacman::p_load(dplyr, ggplot2)
+
+dbcombine01 <- players18 %>%
+  distinct(name)
+
+dbcombine02 <- players04 %>%
+  filter(name %in% dbcombine01$name)
+```
+]
+
+.panel[.panel-name[output: `dbcombine`]
+
+```{r echo=FALSE}
+pacman::p_load(dplyr)
+
+dbcombine02
+```
+]
+]
+
+---
+
+# Plain
+
+.panelset[
+
+.panel[.panel-name[`plain01`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, tidyverse)
+
+plain01 <- dbcombine02 %>%
+  ggplot() +
+  geom_line(aes(x = gw, y = total_points))
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+plain01
+```
+]
+]
+
+.panel[.panel-name[`plain02`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, tidyverse)
+
+plain02 <- dbcombine02 %>%
+  ggplot() +
+  geom_line(aes(x = gw, y = total_points, group = name))
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+plain02
+```
+]
+]
+
+.panel[.panel-name[`plain03`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, tidyverse)
+plain03 <- dbcombine02 %>% 
+  filter(position_long == "03mid") %>% 
+  ggplot() + 
+  geom_line(aes(x = gw, y = total_points, group = name))
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+plain03
+```
+]
+]
+
+.panel[.panel-name[`plain04`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, tidyverse)
+
+plain04 <- dbcombine02 %>%
+  filter(position_long == "03mid") %>%
+  ggplot() +
+  geom_line(aes(x = gw, y = total_points, group = name, color = name))
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+plain04
+```
+]
+]
+
+.panel[.panel-name[`plain05`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, tidyverse)
+
+plain05 <- dbcombine02 %>%
+  filter(position_long == "03mid") %>%
+  ggplot(aes(x = gw, y = total_points, group = name, color = name)) +
+  geom_line() +
+  scale_color_brewer(palette = "Dark2")
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+plain05
+```
+]
+]
+
+]
+
+---
+
+# Line
+
+.panelset[
+
+.panel[.panel-name[code: `line01`]
+
+```{r}
+pacman::p_load(ggplot2, tidyverse)
+
+line01 <- dbcombine02 %>%
+  filter(position_long == "03mid") %>%
+  ggplot(aes(x = gw, y = total_points, group = name, color = name)) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = c(
+    "#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93"
+  )) +
+  theme_minimal() +
+  labs(
+    title = "The Best Midfielders",
+    subtitle = "Season 2023/2024",
+    x = "Gameweek",
+    y = "Points Earned",
+    caption = "Source: github.com/vaastav/Fantasy-Premier-League"
+  ) +
+  theme(legend.position = "bottom")
+```
+]
+
+.panel[.panel-name[output: `line01`]
+
+```{r echo=FALSE}
+line01
+```
+]
+
+.panel[.panel-name[code: `line02`]
+
+```{r}
+pacman::p_load(ggplot2, tidyverse)
+
+line02 <- line01 +
+  guides(color = guide_legend("", nrow = 2)) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 14, hjust = 0.5),
+    plot.subtitle = element_text(size = 11, hjust = 0.5),
+    plot.caption  = element_text(hjust = 0)
+  )
+```
+]
+
+.panel[.panel-name[output: `line02`]
+
+```{r echo=FALSE}
+line02
+```
+]
+
+]
+---
+
+# Facet
+
+.panelset[
+
+.panel[.panel-name[`line03`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, tidyverse)
+
+line03 <- dbcombine02 %>%
+  filter(position_long == "03mid") %>%
+  ggplot() +
+  geom_line(aes(x = gw, y = total_points)) +
+  facet_wrap(~ name, ncol = 5, scales = "fixed") +
+  theme(legend.position = "none")
+```
+]
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+line03
+```
+]
+
+]
+
+.panel[.panel-name[`line04`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, tidyverse)
+
+line04 <- dbcombine02 %>%
+  filter(position_long == "03mid") %>%
+  ggplot() +
+  geom_line(aes(x = gw, y = total_points, color = name)) +
+  scale_color_manual(values = c(
+    "#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93"
+  )) +
+  theme_minimal() +
+  facet_wrap(~ name, ncol = 5, scales = "fixed") +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+line04
+```
+]
+]
+]
+
+---
+
+# Scatter
+
+.panelset[
+
+.panel[.panel-name[`point01`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, tidyverse)
+
+point01 <- dbcombine02 %>%
+  ggplot() +
+  geom_point(aes(x = total_points, y = ict_index, color = position)) +
+  facet_grid(was_home_dv ~ position, scales = "fixed") +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+point01
+```
+]
+]
+
+.panel[.panel-name[`point02`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, tidyverse, ggthemes)
+
+point02 <- dbcombine02 %>%
+  mutate(position = fct_relevel(position, "GK", "DEF", "MID", "FWD")) %>%
+  ggplot() +
+  geom_point(aes(x = total_points, y = ict_index, color = position)) +
+  ggthemes::scale_color_colorblind() +
+  facet_grid(was_home_dv ~ position, scales = "fixed") +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+point02
+```
+]
+]
+]
+
+---
+
+# Column
+
+.panelset[
+
+.panel[.panel-name[`col01`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, tidyverse)
+
+col01 <- players18 %>%
+  ggplot() +
+  geom_col(aes(x = name, y = minutes_played, fill = position_long)) +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+col01
+```
+]
+]
+
+.panel[.panel-name[`col02`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, dplyr, forcats, ggsci)
+
+col02 <- players18 %>%
+  ggplot(aes(x = reorder(name, minutes_played), y = minutes_played, fill = position_long)) + 
+  geom_col() +
+  coord_flip() +
+  ggsci::scale_fill_lancet() +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+col02
+```
+]
+]
+
+.panel[.panel-name[`col03`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, tidyverse, ggthemes)
+
+col03 <- players18 %>%  
+  ggplot(aes(x = name, y = minutes_played, fill = position_long)) +
+  geom_col() +
+  ggthemes::scale_fill_colorblind() +
+  coord_flip() +
+  facet_wrap(~position_long, scales = "free_y") +
+  theme_clean() +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+col03
+```
+]
+]
+
+.panel[.panel-name[`col04`]
+
+.pull-left[
+```{r}
+pacman::p_load(ggplot2, dplyr, ggthemes, tidytext)
+
+col04 <- players18 %>%  
+  ggplot(aes(x = reorder_within(name, minutes_played, position_long),
+             y = minutes_played,
+             fill = position_long)) +
+  geom_col() +
+  ggthemes::scale_fill_colorblind() +
+  coord_flip() +
+  facet_wrap(~ position_long, scales = "free_y") +
+  scale_x_reordered() +
+  ggthemes::theme_clean() +
+  labs(x = "", y = "\nMinutes Played") +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+```{r echo=FALSE, out.width = "100%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE}
+col04
+```
+]
+]
+
+]
+
+
+---
+
+class: center, middle, clear
+
+.center[
+![:scale 50%](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDgweXh3bjA3dzhraHlmc3RlYjJtaDhuN3p5dWZhcTRubDlzMGRocyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3og0IL1CB4lHUzd3ZC/giphy.gif)
+]
+
+.large[
+**Thank you for listening.**
+]
+
+.small[
+All teaching materials will be available at:<br>
+**[`https://github.com/arifpras/tfda-djppr/tree/main/courses`]**
+]
+
+.small[
+Slides created with the R packages:<br>
+[**xaringan**](https://github.com/yihui/xaringan) and [**xaringanthemer**](https://github.com/gadenbuie/xaringanthemer).<br>
+Powered by [**remark.js**](https://remarkjs.com), [**knitr**](http://yihui.name/knitr), and [**R Markdown**](https://rmarkdown.rstudio.com).
+]

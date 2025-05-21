@@ -128,6 +128,11 @@ class: center, middle, inverse, title-slide
 &lt;iframe src="https://emilhvitfeldt.github.io/r-color-palettes/discrete.html" width="100%" height="400px" data-external="1"&gt;&lt;/iframe&gt;
 ]
 
+.panel[.panel-name[🛻 ggsci]
+
+&lt;iframe src="https://cran.r-project.org/web/packages/ggsci/vignettes/ggsci.html#Discrete_color_palettes" width="100%" height="400px" data-external="1"&gt;&lt;/iframe&gt;
+]
+
 ]
 
 .left[.footnote[.small[Honorable mention: https://coolors.co; https://colorhunt.co; https://leonardocolor.io]]]
@@ -175,6 +180,487 @@ To visualize your data, you assign variables to visual components—called **aes
 At a minimum, you need the dataset, a geom layer, and aesthetic mappings. Other components like `stat`, `position`, `coordinate`, `facet`, `scale`, and `theme` are optional—they have default behaviors that work in many common use cases.
 
 .left[.footnote[.small[Source: https://ggplot2.tidyverse.org/index.html; https://rstudio.github.io/cheatsheets/html/data-visualization.html]]]
+
+---
+
+# Load the Datasets
+
+.panelset[
+
+.panel[.panel-name[`players04`]
+
+
+``` r
+pacman::p_load(tidyverse, gt, skimr)
+players04 &lt;- read_csv("https://raw.githubusercontent.com/arifpras/tfda-djppr/refs/heads/main/courses/players04.csv", show_col_types = FALSE)
+
+players04 %&gt;%
+  select(name, team, position, total_points, value_dec, gw) %&gt;%
+  slice_head(n = 5)
+```
+
+```
+## # A tibble: 5 × 6
+##   name          team    position total_points value_dec    gw
+##   &lt;chr&gt;         &lt;chr&gt;   &lt;chr&gt;           &lt;dbl&gt;     &lt;dbl&gt; &lt;dbl&gt;
+## 1 Eddie Nketiah Arsenal FWD                 8       5.5     1
+## 2 Eddie Nketiah Arsenal FWD                 5       5.5     2
+## 3 Eddie Nketiah Arsenal FWD                 5       5.6     3
+## 4 Eddie Nketiah Arsenal FWD                 2       5.6     4
+## 5 Eddie Nketiah Arsenal FWD                 2       5.6     5
+```
+]
+
+.panel[.panel-name[`players18`]
+
+
+``` r
+pacman::p_load(tidyverse, DT, skimr)
+players18 &lt;- read_csv("https://raw.githubusercontent.com/arifpras/tfda-djppr/refs/heads/main/courses/players18.csv", show_col_types = FALSE)
+
+players18 %&gt;%
+  slice_head(n = 5)
+```
+
+```
+## # A tibble: 5 × 9
+##   position_long name          team  count_played minutes_played points_sumplayer
+##   &lt;chr&gt;         &lt;chr&gt;         &lt;chr&gt;        &lt;dbl&gt;          &lt;dbl&gt;            &lt;dbl&gt;
+## 1 01gk          Jordan Pickf… Ever…           38           3420              153
+## 2 01gk          David Raya M… Arse…           32           2880              135
+## 3 02def         Benjamin Whi… Arse…           37           2987              182
+## 4 02def         William Sali… Arse…           38           3420              164
+## 5 02def         Pedro Porro   Spurs           35           3090              136
+## # ℹ 3 more variables: points_avgplayer &lt;dbl&gt;, value_avg &lt;dbl&gt;, ict_avg &lt;dbl&gt;
+```
+]
+
+.panel[.panel-name[code: `dbcombine`]
+
+
+``` r
+pacman::p_load(dplyr, ggplot2)
+
+dbcombine01 &lt;- players18 %&gt;%
+  distinct(name)
+
+dbcombine02 &lt;- players04 %&gt;%
+  filter(name %in% dbcombine01$name)
+```
+]
+
+.panel[.panel-name[output: `dbcombine`]
+
+
+```
+## # A tibble: 570 × 45
+##    name      position position_long team    x_p assists bonus   bps clean_sheets
+##    &lt;chr&gt;     &lt;chr&gt;    &lt;chr&gt;         &lt;chr&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;        &lt;dbl&gt;
+##  1 Benjamin… DEF      02def         Arse…   3.1       0     0     8            0
+##  2 Benjamin… DEF      02def         Arse…   4.5       0     1    26            1
+##  3 Benjamin… DEF      02def         Arse…   3.5       0     0    18            0
+##  4 Benjamin… DEF      02def         Arse…   2.8       0     0    19            0
+##  5 Benjamin… DEF      02def         Arse…   4.7       0     1    28            1
+##  6 Benjamin… DEF      02def         Arse…   4         1     0    19            0
+##  7 Benjamin… DEF      02def         Arse…   8.8       0     2    40            1
+##  8 Benjamin… DEF      02def         Arse…   8.5       0     3    31            1
+##  9 Benjamin… DEF      02def         Arse…   8.2       0     0     8            0
+## 10 Benjamin… DEF      02def         Arse…   6         0     0    24            1
+## # ℹ 560 more rows
+## # ℹ 36 more variables: creativity &lt;dbl&gt;, element &lt;dbl&gt;, expected_assists &lt;dbl&gt;,
+## #   expected_goal_involvements &lt;dbl&gt;, expected_goals &lt;dbl&gt;,
+## #   expected_goals_conceded &lt;dbl&gt;, fixture &lt;dbl&gt;, goals_conceded &lt;dbl&gt;,
+## #   goals_scored &lt;dbl&gt;, ict_index &lt;dbl&gt;, influence &lt;dbl&gt;, kickoff_time &lt;dttm&gt;,
+## #   minutes &lt;dbl&gt;, opponent_team &lt;dbl&gt;, opponent_long &lt;chr&gt;,
+## #   opponent_short &lt;chr&gt;, own_goals &lt;dbl&gt;, penalties_missed &lt;dbl&gt;, …
+```
+]
+]
+
+---
+
+# Plain
+
+.panelset[
+
+.panel[.panel-name[`plain01`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, tidyverse)
+
+plain01 &lt;- dbcombine02 %&gt;%
+  ggplot() +
+  geom_line(aes(x = gw, y = total_points))
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+
+.panel[.panel-name[`plain02`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, tidyverse)
+
+plain02 &lt;- dbcombine02 %&gt;%
+  ggplot() +
+  geom_line(aes(x = gw, y = total_points, group = name))
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-14-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+
+.panel[.panel-name[`plain03`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, tidyverse)
+plain03 &lt;- dbcombine02 %&gt;% 
+  filter(position_long == "03mid") %&gt;% 
+  ggplot() + 
+  geom_line(aes(x = gw, y = total_points, group = name))
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-16-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+
+.panel[.panel-name[`plain04`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, tidyverse)
+
+plain04 &lt;- dbcombine02 %&gt;%
+  filter(position_long == "03mid") %&gt;%
+  ggplot() +
+  geom_line(aes(x = gw, y = total_points, group = name, color = name))
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-18-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+
+.panel[.panel-name[`plain05`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, tidyverse)
+
+plain05 &lt;- dbcombine02 %&gt;%
+  filter(position_long == "03mid") %&gt;%
+  ggplot(aes(x = gw, y = total_points, group = name, color = name)) +
+  geom_line() +
+  scale_color_brewer(palette = "Dark2")
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-20-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+
+]
+
+---
+
+# Line
+
+.panelset[
+
+.panel[.panel-name[code: `line01`]
+
+
+``` r
+pacman::p_load(ggplot2, tidyverse)
+
+line01 &lt;- dbcombine02 %&gt;%
+  filter(position_long == "03mid") %&gt;%
+  ggplot(aes(x = gw, y = total_points, group = name, color = name)) +
+  geom_line(linewidth = 1) +
+  scale_color_manual(values = c(
+    "#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93"
+  )) +
+  theme_minimal() +
+  labs(
+    title = "The Best Midfielders",
+    subtitle = "Season 2023/2024",
+    x = "Gameweek",
+    y = "Points Earned",
+    caption = "Source: github.com/vaastav/Fantasy-Premier-League"
+  ) +
+  theme(legend.position = "bottom")
+```
+]
+
+.panel[.panel-name[output: `line01`]
+
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-22-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+]
+
+.panel[.panel-name[code: `line02`]
+
+
+``` r
+pacman::p_load(ggplot2, tidyverse)
+
+line02 &lt;- line01 +
+  guides(color = guide_legend("", nrow = 2)) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 14, hjust = 0.5),
+    plot.subtitle = element_text(size = 11, hjust = 0.5),
+    plot.caption  = element_text(hjust = 0)
+  )
+```
+]
+
+.panel[.panel-name[output: `line02`]
+
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-24-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+]
+
+]
+---
+
+# Facet
+
+.panelset[
+
+.panel[.panel-name[`line03`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, tidyverse)
+
+line03 &lt;- dbcombine02 %&gt;%
+  filter(position_long == "03mid") %&gt;%
+  ggplot() +
+  geom_line(aes(x = gw, y = total_points)) +
+  facet_wrap(~ name, ncol = 5, scales = "fixed") +
+  theme(legend.position = "none")
+```
+]
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-26-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+
+]
+
+.panel[.panel-name[`line04`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, tidyverse)
+
+line04 &lt;- dbcombine02 %&gt;%
+  filter(position_long == "03mid") %&gt;%
+  ggplot() +
+  geom_line(aes(x = gw, y = total_points, color = name)) +
+  scale_color_manual(values = c(
+    "#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93"
+  )) +
+  theme_minimal() +
+  facet_wrap(~ name, ncol = 5, scales = "fixed") +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-28-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+]
+
+---
+
+# Scatter
+
+.panelset[
+
+.panel[.panel-name[`point01`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, tidyverse)
+
+point01 &lt;- dbcombine02 %&gt;%
+  ggplot() +
+  geom_point(aes(x = total_points, y = ict_index, color = position)) +
+  facet_grid(was_home_dv ~ position, scales = "fixed") +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-30-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+
+.panel[.panel-name[`point02`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, tidyverse, ggthemes)
+
+point02 &lt;- dbcombine02 %&gt;%
+  mutate(position = fct_relevel(position, "GK", "DEF", "MID", "FWD")) %&gt;%
+  ggplot() +
+  geom_point(aes(x = total_points, y = ict_index, color = position)) +
+  ggthemes::scale_color_colorblind() +
+  facet_grid(was_home_dv ~ position, scales = "fixed") +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-32-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+]
+
+---
+
+# Column
+
+.panelset[
+
+.panel[.panel-name[`col01`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, tidyverse)
+
+col01 &lt;- players18 %&gt;%
+  ggplot() +
+  geom_col(aes(x = name, y = minutes_played, fill = position_long)) +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-34-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+
+.panel[.panel-name[`col02`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, dplyr, forcats, ggsci)
+
+col02 &lt;- players18 %&gt;%
+  ggplot(aes(x = reorder(name, minutes_played), y = minutes_played, fill = position_long)) + 
+  geom_col() +
+  coord_flip() +
+  ggsci::scale_fill_lancet() +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-36-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+
+.panel[.panel-name[`col03`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, tidyverse, ggthemes)
+
+col03 &lt;- players18 %&gt;%  
+  ggplot(aes(x = name, y = minutes_played, fill = position_long)) +
+  geom_col() +
+  ggthemes::scale_fill_colorblind() +
+  coord_flip() +
+  facet_wrap(~position_long, scales = "free_y") +
+  theme_clean() +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-38-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+
+.panel[.panel-name[`col04`]
+
+.pull-left[
+
+``` r
+pacman::p_load(ggplot2, dplyr, ggthemes, tidytext)
+
+col04 &lt;- players18 %&gt;%  
+  ggplot(aes(x = reorder_within(name, minutes_played, position_long),
+             y = minutes_played,
+             fill = position_long)) +
+  geom_col() +
+  ggthemes::scale_fill_colorblind() +
+  coord_flip() +
+  facet_wrap(~ position_long, scales = "free_y") +
+  scale_x_reordered() +
+  ggthemes::theme_clean() +
+  labs(x = "", y = "\nMinutes Played") +
+  theme(legend.position = "none")
+```
+]
+
+.pull-right[
+&lt;img src="20250522_slide04_files/figure-html/unnamed-chunk-40-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+]
+]
+
+]
+
+
+---
+
+class: center, middle, clear
+
+.center[
+![:scale 50%](https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExcDgweXh3bjA3dzhraHlmc3RlYjJtaDhuN3p5dWZhcTRubDlzMGRocyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3og0IL1CB4lHUzd3ZC/giphy.gif)
+]
+
+.large[
+**Thank you for listening.**
+]
+
+.small[
+All teaching materials will be available at:&lt;br&gt;
+**[`https://github.com/arifpras/tfda-djppr/tree/main/courses`]**
+]
+
+.small[
+Slides created with the R packages:&lt;br&gt;
+[**xaringan**](https://github.com/yihui/xaringan) and [**xaringanthemer**](https://github.com/gadenbuie/xaringanthemer).&lt;br&gt;
+Powered by [**remark.js**](https://remarkjs.com), [**knitr**](http://yihui.name/knitr), and [**R Markdown**](https://rmarkdown.rstudio.com).
+]
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
