@@ -225,7 +225,7 @@ unique(players05$position_long)
     group_by(team, name, position) %>%
     summarise(
       points_sumplayer = sum(total_points),
-      minutes_played = sum(minutes), 
+      minutes_played = sum(minutes),
       .groups = "drop") %>% 
     ungroup() %>%
     arrange(desc(points_sumplayer))
@@ -257,42 +257,48 @@ Find the Top 20 Players per Position
 
 ```{r slicing02}
 (
-  players09 <- players04 %>%
-    filter(minutes != 0) %>%
-    group_by(team, position_long, name) %>%
-    summarise(
-      count_played = n(),
-      minutes_played = sum(minutes),
-      points_sumplayer = sum(total_points),
-      points_avgplayer = mean(total_points),
-      .groups = "drop"
-    ) %>%
-    relocate(position_long, name, team) %>%
-    group_by(position_long) %>%
-    slice_max(order_by = points_avgplayer, n = 20) %>%
-    ungroup()
+players09 <- players04 %>%
+  filter(minutes != 0) %>%
+  group_by(name) %>%
+  mutate(position_long = last(position_long), team = last(team)) %>%
+  summarise(
+    count_played = n(),
+    minutes_played = sum(minutes),
+    points_sumplayer = sum(total_points),
+    points_avgplayer = mean(total_points),
+    position_long = last(position_long),
+    team = last(team),
+    .groups = "drop"
+  ) %>%
+  relocate(position_long, name, team) %>%
+  group_by(position_long) %>%
+  slice_max(order_by = points_avgplayer, n = 20) %>%
+  ungroup()
 )
 ```
 
 ```{r pivot_wide}
 (
   players10 <- players04 %>%
-    filter(minutes != 0) %>% 
-    group_by(team, position, name) %>%
+    filter(minutes != 0) %>%
+    group_by(name) %>%
+    mutate(position = last(position), team = last(team)) %>%
     summarise(
       count_played = n(),
       minutes_played = sum(minutes),
       points_sumplayer = sum(total_points),
       points_avgplayer = mean(total_points),
+      position = last(position),
+      team = last(team),
       value_avg = mean(value_dec),
       ict_avg = mean(ict_index),
-      .groups = "drop") %>%
-    ungroup() %>% 
-    relocate(position, name, team) %>% 
-    group_by(position) %>% 
+      .groups = "drop"
+    ) %>%
+    ungroup() %>%
+    relocate(position, name, team) %>%
+    group_by(position) %>%
     slice_max(order_by = points_sumplayer, n = 10) %>%
-    # mutate(position_rank = row_number(desc(points_sumplayer))) %>% 
-    mutate(position_rank = min_rank(desc(points_sumplayer))) %>% 
+    mutate(position_rank = min_rank(desc(points_sumplayer))) %>%
     ungroup()
 )
 
@@ -306,9 +312,9 @@ Find the Top 20 Players per Position
 )
 
 (
-  players12 <- players11 %>% 
+  players12 <- players11 %>%
     pivot_wider(
-      names_from = variable01, 
+      names_from = variable01,
       values_from = value01)
 )
 ```
@@ -436,9 +442,6 @@ budget_limit <- 100
 # === Step 1: Worthiness & overfilter top candidates ===
 candidate_pool <- players12 %>%
   mutate(worthiness = points_sumplayer / value_avg) %>%
-  # group_by(position) %>%
-  # slice_max(order_by = worthiness, n = 15) %>%  # overselect to allow constraint flexibility
-  # ungroup() %>%
   arrange(desc(worthiness))  # highest worthiness first
 
 # === Step 2: Initialize ===
@@ -489,18 +492,21 @@ budget_limit <- 100
 
 # === Step 1: Worthiness & overfilter top candidates ===
 candidate_pool <- players04 %>%
-    filter(minutes != 0) %>%
-    group_by(team, position_long, name) %>%
-    summarise(
-      count_played = n(),
-      minutes_played = sum(minutes),
-      points_sumplayer = sum(total_points),
-      points_avgplayer = mean(total_points),
-      value_avg = mean(value_dec),
-      ict_avg = mean(ict_index),
-      .groups = "drop"
-    ) %>%
-    relocate(position_long, name, team) %>%
+  filter(minutes != 0) %>%
+  group_by(name) %>%
+  mutate(position_long = last(position_long), team = last(team)) %>%
+  summarise(
+    count_played = n(),
+    minutes_played = sum(minutes),
+    points_sumplayer = sum(total_points),
+    points_avgplayer = mean(total_points),
+    value_avg = mean(value_dec),
+    ict_avg = mean(ict_index),
+    position_long = last(position_long),
+    team = last(team),
+    .groups = "drop"
+  ) %>%
+  relocate(position_long, name, team) %>%
     group_by(position_long) %>%
     slice_max(order_by = points_sumplayer, n = 20) %>%
     ungroup()
@@ -544,26 +550,575 @@ message("Players per team:")
 print(table(players18$team))
 message("Players per position:")
 print(table(players18$position_long))
+
+# === Save ===
+# write_csv(players18, "players18.csv")
+```
+
+```{r combinations}
+# === Load Required Packages ===
+pacman::p_load(dplyr, tibble, purrr, tictoc, beepr)
+
+# === Helper Function ===
+generate_position_combos <- function(pos_code, k, budget_limit, label, pool_limit = 20) {
+  cat("\n===== Generating combinations for", label, "=====\n")
+
+  pool <- players04 %>%
+    filter(position_long == pos_code, minutes > 0) %>%
+    group_by(name, team) %>%
+    summarise(
+      points_sum = sum(total_points),
+      value_avg = mean(value_dec),
+      .groups = "drop"
+    ) %>%
+    arrange(desc(points_sum)) %>%
+    slice_head(n = pool_limit)  # ✅ reduce combination size
+
+  total_combos <- choose(nrow(pool), k)
+  cat("🔢 Total combinations (limited pool):", total_combos, "\n")
+
+  tic(paste("⏱️ Processing", label, "combinations..."))
+
+  combos <- combn(pool$name, k, simplify = FALSE)
+
+  result <- purrr::map_dfr(combos, function(combo) {
+    squad <- pool %>% filter(name %in% combo)
+
+    tibble(
+      combo = paste(combo, collapse = " | "),
+      total_cost = sum(squad$value_avg),
+      total_points = sum(squad$points_sum),
+      team_count = n_distinct(squad$team)
+    )
+  }) %>%
+    filter(
+      total_cost <= budget_limit,
+      team_count == k
+    ) %>%
+    arrange(desc(total_points))
+
+  toc()
+  beepr::beep(1)
+  return(result)
+}
+
+# GK: 2 players from top 10
+gk_combos <- generate_position_combos("01gk", 2, 10, "Goalkeepers", pool_limit = 10)
+
+# DEF: 5 players from top 20
+def_combos <- generate_position_combos("02def", 5, 30, "Defenders", pool_limit = 20)
+
+# MID: 5 players from top 20
+mid_combos <- generate_position_combos("03mid", 5, 40, "Midfielders", pool_limit = 20)
+
+# FWD: 3 players from top 15
+fwd_combos <- generate_position_combos("04fwd", 3, 20, "Forwards", pool_limit = 15)
 ```
 
 ```{r}
+# Step 1: Expand combo column into individual player names
+best_team_expanded <- best_team %>%
+  separate_rows(combo, sep = " \\| ") %>%
+  rename(player_name = combo)
+
+# Step 2: Prepare season-level player stats from players04
+player_summary <- players04 %>%
+  filter(minutes > 0) %>%
+  group_by(name, position_long) %>%
+  summarise(
+    team = last(team),  # take latest team
+    player_total_points = sum(total_points),
+    total_minutes = sum(minutes),
+    avg_value = mean(value_dec),
+    avg_ict = mean(ict_index),
+    .groups = "drop"
+  ) %>%
+  rename(player_name = name)
+
+# Step 3: Join and sort
+best_team_with_stats <- best_team_expanded %>%
+  left_join(player_summary, by = "player_name") %>%
+  arrange(position_long, desc(player_total_points)) %>% 
+  select(-total_cost, -total_points, -team_count)
+
+# View final result
+message("\nTotal points: ", sum(best_team_with_stats$player_total_points))
+message("Total budget used: ", sum(best_team_with_stats$avg_value))
+```
+
+```{r winner}
 # The name of the winning team was Jonas Sand Labakk's Onkel Blaa and it finished with a total points tally of 2,799.
 ```
 
 ```{r saving}
-writexl::write_xlsx(x = list(table_wide = players10, table_long = players11),
-                    path = "fpldataset.xlsx")
+writexl::write_xlsx(
+  x = list(database = players04, table_wide = players10, table_long = players11, worthiness15 = players17, totalpoints15 = players18), path = "fpldataset.xlsx")
 
-# write_csv(players10, "fpldataset_tablewide.csv")
+write_csv(players04, "players04.csv")
+write_csv(players18, "players18.csv")
 ```
 
 # Data Viz
 
-```{r plot01_black}
+```{r dumbbell}
+# === Load Required Packages ===
+pacman::p_load(dplyr, ggplot2, scales)
+
+# === Step 1: Identify Key Players from Final Team ===
+dumbbell01 <- players18 %>%
+  distinct(name)
+
+# === Step 2: Filter Full Season Data for Those Players ===
+dumbbell02 <- players04 %>%
+  filter(name %in% dumbbell01$name)
+
+# === Step 3: Extract First and Last Gameweek Entries for Each Player ===
+dumbbell03 <- dumbbell02 %>%
+  group_by(name) %>%
+  arrange(gw) %>%
+  slice_head(n = 1) %>%
+  bind_rows(
+    dumbbell02 %>%
+      group_by(name) %>%
+      arrange(gw) %>%
+      slice_tail(n = 1)
+  ) %>%
+  ungroup()
+
+# === Step 4: Create Dumbbell Plot ===
+dumbbell04 <- ggplot(dumbbell03, aes(x = value_dec, y = reorder(name, value_dec))) +
+  geom_line(aes(group = name), color = "#cccccc", linewidth = 1) +   # Connector
+  geom_point(aes(color = factor(gw)), size = 4) +                    # Start & End Points
+  scale_color_brewer(palette = "Set1", direction = -1, name = "Gameweek") +
+  scale_x_continuous(labels = dollar_format(prefix = "£", suffix = "m")) +
+  labs(
+    title = "Price Evolution of Key Players",
+    subtitle = "Start vs End of Season (by Gameweek)",
+    x = NULL,
+    y = NULL
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(margin = margin(b = 10)),
+    plot.title.position = "plot",
+    plot.caption.position = "plot"
+  )
+
+# === Step 5: Display Plot ===
+dumbbell04
+```
+
+```{r pitch}
+# === Load packages ===
+pacman::p_load(ggplot2, ggrepel, ggsoccer, dplyr, tidyr, forcats, egg, ggpubr)
+
+# === Step 1: Visual exploration to guide formation choice -- col/bar ===
+pitch01a <- players18 %>%
+  pivot_longer(cols = 4:9, names_to = "variable01", values_to = "value01") %>%
+  ggplot(aes(
+    x = reorder_within(name, value01, variable01),
+    y = value01,
+    fill = factor(position_long)
+  )) +
+  geom_col() +
+  coord_flip() +
+  scale_x_reordered() +
+  scale_fill_manual(values = c("#ef476f", "#ffd166", "#06d6a0", "#1E90FF")) +
+  egg::theme_article() +
+  facet_wrap(~ variable01, ncol = 3, scales = "free") +
+  theme(legend.position = "top", legend.title = element_blank()) +
+  labs(x = "", y = "")
+
+# === Step 1: Visual exploration to guide formation choice -- balloon ===
+pitch01b <- players18 %>%
+  select(-position_long, -team) %>%
+  mutate(across(
+    .cols = where(is.numeric),
+    .fns = ~ (. - min(.)) / (max(.) - min(.))
+  )) %>%
+  pivot_longer(cols = 2:7,
+               names_to = "variable01",
+               values_to = "value01") %>%
+  # ggballoonplot(x = "variable01", y = "name", fill = "#030303", color = "#FFFFFF") +
+  ggballoonplot(
+    x = "variable01",
+    y = "name",
+    fill = "value01",
+    color = "value01"
+  ) +
+  scale_size(range = c(2.5, 7.5)) +
+  # scale_fill_gradientn(
+  #   colours = brewer.pal(n = 9, name = "RdYlBu"),  # ✅ ColorBrewer palette
+  #   name = NULL
+  # ) +
+  scale_fill_viridis_c(option = "D", direction = -1) +
+  scale_color_viridis_c(option = "D", direction = -1) +
+  theme_minimal() +
+  labs(x = NULL, y = NULL) +
+  theme(legend.position = "none")
+
+# === Step 2: Assign formation flags ===
+pitch02 <- players18 %>%
+  group_by(position_long) %>%
+  arrange(desc(points_avgplayer), .by_group = TRUE) %>%
+  mutate(rank_id = row_number()) %>%
+  ungroup() %>%
+  mutate(
+    form352 = case_when(
+      position_long == "01gk" & rank_id == 2 ~ "bench",
+      position_long == "02def" & rank_id %in% c(4, 5) ~ "bench",
+      position_long == "04fwd" & rank_id == 3 ~ "bench",
+      TRUE ~ "play"
+    ),
+    form442 = case_when(
+      position_long == "01gk" & rank_id == 2 ~ "bench",
+      position_long == "02def" & rank_id == 5 ~ "bench",
+      position_long == "03mid" & rank_id == 5 ~ "bench",
+      position_long == "04fwd" & rank_id == 3 ~ "bench",
+      TRUE ~ "play"
+    ),
+    form343 = case_when(
+      position_long == "01gk" & rank_id == 2 ~ "bench",
+      position_long == "02def" & rank_id %in% c(4, 5) ~ "bench",
+      position_long == "03mid" & rank_id == 5 ~ "bench",
+      TRUE ~ "play"
+    )
+  ) %>%
+  relocate(rank_id, form442, form343, form352, name, points_avgplayer)
+
+# === Step 3: Coordinate templates for each formation ===
+for352 <- tibble(
+  x = c(98, 98, 83, 83, 83, 89, 80, 68, 68, 68, 68, 68, 53, 53, 71),
+  y = c(50, 110, 25, 50, 75, 110, 110, 10, 30, 50, 70, 90, 37.5, 62.5, 110)
+)
+
+for442 <- tibble(
+  x = c(98, 98, 83, 83, 83, 83, 89, 68, 68, 68, 68, 80, 53, 53, 71),
+  y = c(50, 110, 20, 40, 60, 80, 110, 20, 40, 60, 80, 110, 37.5, 62.5, 110)
+)
+
+for343 <- tibble(
+  x = c(98, 98, 83, 83, 83, 89, 80, 68, 68, 68, 68, 71, 53, 53, 53),
+  y = c(50, 110, 25, 50, 75, 110, 110, 20, 40, 60, 80, 110, 25, 50, 75)
+)
+
+# === Step 4: Join formation data with coordinates ===
+formation352 <- pitch02 %>%
+  arrange(factor(position_long), rank_id) %>%
+  bind_cols(for352 %>% slice(1:n()))
+
+formation442 <- pitch02 %>%
+  arrange(factor(position_long), rank_id) %>%
+  bind_cols(for442 %>% slice(1:n()))
+
+formation343 <- pitch02 %>%
+  arrange(factor(position_long), rank_id) %>%
+  bind_cols(for343 %>% slice(1:n()))
+
+# === Step 5: Plotting function ===
+plot_formation <- function(df, form_col, title_label) {
+  ggplot(df) +
+    annotate_pitch(colour = "white", fill = "#e0e2db", limits = FALSE) +
+    geom_point(aes(x = x, y = 100 - y, fill = .data[[form_col]]),
+               shape = 21, size = 5) +
+    scale_fill_manual(values = c("play" = "#8b2635", "bench" = "#2e3532")) +
+    geom_text_repel(
+      aes(x = x, y = 100 - y, label = stringr::str_wrap(name, 10), color = .data[[form_col]]),
+      direction = "y", nudge_x = -4, segment.colour = NA, size = 3
+    ) +
+    scale_color_manual(values = c("play" = "#8b2635", "bench" = "#2e3532")) +
+    theme_pitch() +
+    theme(
+      panel.background = element_rect(fill = "#e0e2db"),
+      legend.position = "none",
+      plot.title = element_text(hjust = 0, size = 18, face = "bold"),
+      plot.subtitle = element_text(hjust = 0, size = 14)
+    ) +
+    coord_flip(xlim = c(49, 101), ylim = c(-12, 112)) +
+    ggtitle(title_label, subtitle = "instagram/arifpras")
+}
+
+# === Step 6: Generate pitch plots ===
+pitch03 <- plot_formation(formation442, "form442", "Belut Listrik FC — 4-4-2")
+pitch04 <- plot_formation(formation352, "form352", "Belut Listrik FC — 3-5-2")
+pitch05 <- plot_formation(formation343, "form343", "Belut Listrik FC — 3-4-3")
+
+# === Step 7: Print pitch plots ===
+pitch01a
+pitch01b
+pitch02
+pitch03
+pitch04
+pitch05
+```
+
+```{r waffle01}
+# === Load packages ===
+pacman::p_load(waffle, dplyr, ggplot2, viridis)
+
+# === Step 1: Top 200 players
+parliament01 <- players07 %>%
+  slice_max(order_by = points_sumplayer, n = 200, with_ties = FALSE)
+
+# === Step 2: Count and calculate percentages
+fpl_counts <- parliament01 %>%
+  count(position) %>%
+  mutate(
+    position = factor(position, levels = c("GK", "DEF", "MID", "FWD")),
+    percent = round(n / sum(n) * 100, 1),
+    label = paste0(position, " (", percent, "%)")
+  ) %>%
+  arrange(position)
+
+# === Step 3: Named vector with % labels
+parts_vector <- setNames(fpl_counts$n, fpl_counts$label)
+
+# === Step 3: Assign colors using viridis
+viridis_colors <- viridis::viridis(n = length(parts_vector), option = "D")  # or "C", "B", etc.
+
+# === Step 4: Plot waffle chart with % legend labels
+waffle01 <- waffle::waffle(
+  parts = parts_vector,
+  rows = 10,
+  size = 1.2,
+  # colors = c(
+  #   "GK (x%)"  = "#e63946",
+  #   "DEF (x%)" = "#457b9d",
+  #   "MID (x%)" = "#f4a261",
+  #   "FWD (x%)" = "#2a9d8f"
+  # )[fpl_counts$label],  # align color order with label vector
+  colors = viridis_colors,
+  title = "Top 200 FPL Players by Position, 2023/2024",
+  legend_pos = "bottom"
+)
+```
+
+```{r waffle02}
+# === Load packages ===
+pacman::p_load(ggplot2, dplyr, viridis, stringr, RColorBrewer)
+
+# Step 1: Get top 100 players
+fpl_data <- players07 %>%
+  slice_max(order_by = points_sumplayer, n = 100, with_ties = FALSE) %>%
+  mutate(position = factor(position, levels = c("GK", "DEF", "MID", "FWD")))
+
+# Step 2: Create waffle layout (10×10 grid)
+grid <- expand.grid(x = 1:10, y = 1:10) %>%
+  arrange(desc(y), x)
+
+waffle_layout <- bind_cols(grid, fpl_data)
+
+# Step 3: Calculate % shares per position
+position_labels <- waffle_layout %>%
+  count(position) %>%
+  mutate(
+    percent = round(n / sum(n) * 100, 1),
+    label = paste0(position, " (", percent, "%)")
+  )
+
+# Create named vector for legend labels
+label_vector <- setNames(position_labels$label, position_labels$position)
+
+# Step 4: Plot with % legend
+waffle02 <- ggplot(waffle_layout, aes(x = x, y = y, fill = position)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = str_wrap(name, 10)), size = 2.3, lineheight = 0.9) +
+  # scale_fill_viridis_d(
+  #   option = "D",
+  #   direction = -1,
+  #   labels = label_vector  # ✅ use custom % labels in legend
+  # ) +
+  scale_fill_brewer(palette = "Paired", labels = label_vector) +
+  coord_equal() +
+  theme_void() +
+  labs(
+    title = "Top 100 FPL Players by Points (2023/2024)",
+    # subtitle = "",
+  ) +
+  guides(fill = guide_legend("")) +
+  theme(
+    plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+    plot.subtitle = element_text(size = 11, hjust = 0.5),
+    legend.position = "top"
+  )
+```
+
+```{r cluster}
+pacman::p_load(dplyr, factoextra, tibble)
+
+# Step 1: Recode position and add label with suffix
+players18_labeled <- players18 %>%
+  mutate(
+    position_readable = recode(position_long,
+      "01gk" = "GK",
+      "02def" = "DEF",
+      "03mid" = "MID",
+      "04fwd" = "FWD"
+    ),
+    label = paste0(name, " (", position_readable, ")")
+  )
+
+# Step 2: Prepare data with label as rownames
+players18_scaled <- players18_labeled %>%
+  column_to_rownames("label") %>%
+  select(where(is.numeric)) %>%
+  scale()
+
+# Step 3: Cluster and plot with labeled names
+dist(players18_scaled) %>%
+  hclust(method = "ward.D2") %>%
+  fviz_dend(
+    cex = 0.6,
+    k = 4,
+    palette = "jco",
+    horiz = TRUE,
+    main = "Hierarchical Clustering of Top FPL Players"
+  )
+```
+
+```{r correl}
+# === Load all required packages ===
+pacman::p_load(dplyr, GGally, corrplot, PerformanceAnalytics, psych, ggcorrplot)
+
+# === Prepare numeric subset ===
+numeric_data <- players18 %>%
+  select(where(is.numeric))
+
+# === 1. GGally::ggpairs() — Pairwise scatterplots, histograms, and correlations ===
+ggpairs(
+  numeric_data,
+  ggtheme = theme_bw(),  # Clean theme
+  lower = list(continuous = wrap("points", alpha = 0.6)),  # Scatterplots
+  upper = list(continuous = wrap("cor", size = 4)),        # Correlation values
+  diag  = list(continuous = wrap("barDiag", bins = 10))    # Histograms
+)
+
+# === 2. corrplot — Static, colored correlation heatmap with hierarchical ordering ===
+cor_mat <- cor(numeric_data)
+
+corrplot(
+  cor_mat,
+  method = "color",
+  type = "upper",
+  order = "hclust",  # Clustered correlation
+  col = colorRampPalette(c("red", "white", "blue"))(200),
+  addCoef.col = "black",  # Show correlation values
+  tl.cex = 0.8             # Label text size
+)
+
+# === 3. PerformanceAnalytics::chart.Correlation() — Quick correlation panel ===
+chart.Correlation(
+  numeric_data,
+  histogram = TRUE,  # Include histograms
+  pch = 21            # Dot style
+)
+
+# === 4. psych::pairs.panels() — Full diagnostic panel ===
+psych::pairs.panels(
+  numeric_data,
+  method = "pearson",      # or "spearman"
+  hist.col = "#69b3a2",    # Histogram color
+  density = TRUE,          # Add density curves
+  ellipses = TRUE          # Confidence ellipses
+)
+
+# === 5. ggcorrplot — ggplot2-style heatmap with labels ===
+ggcorrplot(
+  cor_mat,
+  method = "square",
+  type = "upper",
+  lab = TRUE,                        # Show correlation numbers
+  colors = c("red", "white", "blue"),
+  title = "Correlation Matrix of Player Stats"
+)
+```
+
+```{r ggridges}
+# === Load Required Packages ===
+pacman::p_load(ggridges, ggplot2, dplyr, forcats)
+
+# === Step 1: Filter Final Squad Players ===
+ridges01 <- players18 %>% distinct(name)
+
+ridges02 <- players04 %>%
+  filter(name %in% ridges01$name)
+
+# === Step 2: Prepare Ridge Plot Data
+# Reorder players by average total points (descending)
+ridges02_ordered <- ridges02 %>%
+  mutate(name = fct_reorder(name, total_points, .fun = mean, .desc = TRUE))
+
+# === Step 3: Ridge Plot with Quantile Shading ===
+ggplot(ridges02_ordered, aes(x = total_points, y = name, fill = stat(quantile))) +
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    quantile_lines = TRUE,
+    calc_ecdf = TRUE,
+    quantiles = c(0.05, 0.95)
+  ) +
+  scale_fill_manual(
+    name = "Probability Range",
+    values = c("#E2FFF2", "white", "#B0E0E6"),
+    labels = c("(0, 5%]", "(5%, 95%]", "(95%, 1]")
+  ) +
+  labs(
+    title = "Distribution of Total Points by Player",
+    subtitle = "Dashed line and shaded areas show 5% and 95% quantiles",
+    x = "\nTotal Points (per Gameweek)",
+    y = "Player (Sorted by Avg Points)\n"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    legend.position = "bottom",
+    axis.text.y = element_text(size = 8),
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(margin = margin(b = 10)),
+    plot.title.position = "plot",
+    plot.caption.position = "plot"
+  )
+```
+
+```{r box}
+# === Load Required Packages ===
+pacman::p_load(ggplot2, dplyr, forcats)
+
+# === Step 1: Filter Final Squad Players ===
+players_selected <- players18 %>% distinct(name)
+
+boxplot_data <- players04 %>%
+  filter(name %in% players_selected$name)
+
+# === Step 2: Reorder players by average total points
+boxplot_data_ordered <- boxplot_data %>%
+  mutate(name = fct_reorder(name, total_points, .fun = mean, .desc = TRUE))
+
+# === Step 3: Create Boxplot
+ggplot(boxplot_data_ordered, aes(x = total_points, y = name)) +
+  geom_boxplot(fill = "#69b3a2", outlier.color = "black", outlier.shape = 21) +
+  labs(
+    title = "Total Points Distribution per Player",
+    subtitle = "Boxplots sorted by average points per gameweek",
+    x = "\nTotal Points (per Gameweek)",
+    y = ""
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.y = element_text(size = 8),
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(margin = margin(b = 10)),
+    plot.title.position = "plot",
+    plot.caption.position = "plot",
+  )
+```
+
+```{r geom_point}
 # Load nord palette (if needed)
 # pacman::p_load(nord, scico, colorspace)
 
-plot01 <- players10 %>%
+plot_point <- players10 %>%
   mutate(position = fct_relevel(position, "GK", "DEF", "MID", "FWD")) %>%
   group_by(position) %>%
   slice_max(order_by = points_sumplayer, n = 5) %>%
@@ -586,7 +1141,7 @@ plot01 <- players10 %>%
   labs(
     title = "Who Ruled the Pitch?",
     subtitle = "Top 5 Players by Position in PL 2023/2024\n",
-    caption = "\nVisualized by Task Force Data Analytics — DJPPR | Data: github.com/vaastav | April 2025",
+    caption = "\nVisualized by Task Force Data Analytics — DJPPR | Data: github.com/vaastav | May 2025",
     x = "Ranked by ICT Index\n",
     y = "\nTotal Points"
   ) +
@@ -629,13 +1184,13 @@ plot01 <- players10 %>%
     panel.spacing = unit(1, "lines")
   )
 
-plot01
+plot_point
 ```
 
-```{r}
+```{r save_png}
 ggsave(
-  filename = "20250428_course01_plot01.png",
-  plot = plot01,
+  filename = "20250522_course01_plot01.png",
+  plot = plot_point,
   width = 3840,
   height = 2160,
   units = "px",
@@ -643,11 +1198,10 @@ ggsave(
 )
 ```
 
-
-```{r saving_plot}
+```{r save_pdf}
 # ggsave(
-#   filename = "20250428_rcourse_plot01.pdf",
-#   plot = plot01,
+#   filename = "20250522_rcourse_plot01.pdf",
+#   plot = plot_point,
 #   device = cairo_pdf,
 #   width = 297,
 #   height = 210,

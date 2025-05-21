@@ -257,20 +257,23 @@ Find the Top 20 Players per Position
 
 ```{r slicing02}
 (
-  players09 <- players04 %>%
-    filter(minutes != 0) %>%
-    group_by(team, position_long, name) %>%
-    summarise(
-      count_played = n(),
-      minutes_played = sum(minutes),
-      points_sumplayer = sum(total_points),
-      points_avgplayer = mean(total_points),
-      .groups = "drop"
-    ) %>%
-    relocate(position_long, name, team) %>%
-    group_by(position_long) %>%
-    slice_max(order_by = points_avgplayer, n = 20) %>%
-    ungroup()
+players09 <- players04 %>%
+  filter(minutes != 0) %>%
+  group_by(name) %>%
+  mutate(position_long = last(position_long), team = last(team)) %>%
+  summarise(
+    count_played = n(),
+    minutes_played = sum(minutes),
+    points_sumplayer = sum(total_points),
+    points_avgplayer = mean(total_points),
+    position_long = last(position_long),
+    team = last(team),
+    .groups = "drop"
+  ) %>%
+  relocate(position_long, name, team) %>%
+  group_by(position_long) %>%
+  slice_max(order_by = points_avgplayer, n = 20) %>%
+  ungroup()
 )
 ```
 
@@ -278,12 +281,15 @@ Find the Top 20 Players per Position
 (
   players10 <- players04 %>%
     filter(minutes != 0) %>%
-    group_by(team, position, name) %>%
+    group_by(name) %>%
+    mutate(position = last(position), team = last(team)) %>%
     summarise(
       count_played = n(),
       minutes_played = sum(minutes),
       points_sumplayer = sum(total_points),
       points_avgplayer = mean(total_points),
+      position = last(position),
+      team = last(team),
       value_avg = mean(value_dec),
       ict_avg = mean(ict_index),
       .groups = "drop"
@@ -292,7 +298,6 @@ Find the Top 20 Players per Position
     relocate(position, name, team) %>%
     group_by(position) %>%
     slice_max(order_by = points_sumplayer, n = 10) %>%
-    # mutate(position_rank = row_number(desc(points_sumplayer))) %>%
     mutate(position_rank = min_rank(desc(points_sumplayer))) %>%
     ungroup()
 )

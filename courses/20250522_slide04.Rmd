@@ -1,0 +1,193 @@
+---
+title: "R Workshop – Session #03"
+subtitle: "Data Visualization with R"
+author: 'Arif P. Sulistiono | Task Force Data Analytics -- DJPPR'
+date: '<br>Tuesday, 22 May 2025<br> <a href="https://github.com/arifpras/tfda-djppr/tree/main"> <i class="fa-brands fa-github"></i> tfda.djppr </a>'
+
+output:
+  xaringan::moon_reader:
+    css: [default, metropolis, metropolis-fonts, custom.css]
+    nature:
+      #seal: false
+      slideNumberFormat: "%current%"
+      highlightStyle: github
+      highlightLines: true
+      ratio: 16:9
+      countIncrementalSlides: true
+      #titleSlideClass: [bottom, left]
+      beforeInit: ["macros.js", "https://platform.twitter.com/widgets.js"]
+
+---
+
+```{r xaringan-themer, warning=FALSE, include=FALSE}
+library(xaringanthemer)
+#remotes::install_github("mitchelloharawild/icons", force = TRUE)
+#download_fontawesome()
+#download_ionicons()
+#download_academicons()
+#download_simple_icons()
+#download_bioicons()
+#download_google_material()
+#download_feather_icons()
+#download_octicons()
+library("icons")
+#https://github.com/mitchelloharawild/icons
+
+# install.packages("devtools")
+#devtools::install_github("gadenbuie/xaringanExtra")
+library("xaringanExtra")
+
+#install.packages("webshot")
+#webshot::install_phantomjs()
+library("webshot")
+library("usethis")
+```
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(fig.width = 6, fig.asp = 0.618, out.width = "50%", fig.align = "center", fig.retina = 3, warning = FALSE, message = FALSE)
+```
+
+```{r xaringanExtra-clipboard, echo=FALSE}
+htmltools::tagList(
+  xaringanExtra::use_clipboard(
+    button_text = "<i class=\"fa fa-clipboard\"></i>",
+    success_text = "<i class=\"fa fa-check\" style=\"color: #90BE6D\"></i>",
+    error_text = "<i class=\"fa fa-times-circle\" style=\"color: #F94144\"></i>"
+  ),
+  rmarkdown::html_dependency_font_awesome()
+)
+```
+
+```{r xaringan-panelset, echo=FALSE}
+xaringanExtra::use_panelset()
+```
+
+```{r xaringanExtra-freezeframe, echo=FALSE}
+xaringanExtra::use_freezeframe()
+```
+
+```{r xaringan-extra-styles, echo = FALSE}
+xaringanExtra::use_extra_styles(
+  hover_code_line = TRUE,         #<<
+  mute_unhighlighted_code = TRUE  #<<
+)
+```
+
+```{r xaringanExtra, echo = FALSE}
+xaringanExtra::use_progress_bar(color = "orange", location = "top")
+```
+
+# Color Theory
+
+.panelset[
+
+.panel[.panel-name[✅ Sequential Color Scales]
+
+* Used for ordered numeric data (e.g., income, temperature, score)  
+* Color intensity increases with the value (light → dark, low → high)  
+* Coding: `ggplot(...) + scale_fill_viridis_c()`
+
+```{r echo = FALSE, fig.width = 6, fig.asp = 0.618, out.width = "100%", fig.align = "center", fig.retina = 3}
+knitr::include_url("https://spectrum.adobe.com/static/images1x/data-vis-color_options_sequential_desktop@2x_1649353411210.png", height = "300px")
+
+```
+]
+
+.panel[.panel-name[🔁 Diverging Color Scales]
+* Used when data has a meaningful midpoint (e.g., zero, average, baseline).
+* Two hues diverge from a neutral center. Best for: political leanings (e.g., left vs right)
+* Coding: `ggplot(...) + scale_fill_gradient2(low = "blue", mid = "white", high = "red")`
+
+```{r echo = FALSE, fig.width = 6, fig.asp = 0.618, out.width = "100%", fig.align = "center", fig.retina = 3}
+knitr::include_url("https://spectrum.adobe.com/static/images1x/data-vis-color_options_diverging_desktop@2x_1649353411310.png", height = "300px")
+
+```
+]
+
+.panel[.panel-name[🟦🔴 Qualitative Color Scales]
+* Used for categorical or nominal data (e.g., regions, product types).
+* Colors should be distinct but not imply order or magnitude.
+* Coding: `ggplot(...) + scale_fill_brewer(palette = "Set1")`
+
+```{r echo = FALSE, fig.width = 6, fig.asp = 0.618, out.width = "100%", fig.align = "center", fig.retina = 3}
+knitr::include_url("https://spectrum.adobe.com/static/images/data-vis-color_options_categorical_desktop@2x_1649353411121.png", height = "300px")
+
+```
+]
+
+]
+
+.left[.footnote[.small[Source: https://spectrum.adobe.com/page/color-for-data-visualization/; https://www.datawrapper.de/blog/quantitative-vs-qualitative-color-scales]]]
+
+---
+
+# Color Palette
+
+.panelset[
+
+.panel[.panel-name[🧿 Color Blind–Friendly Visualization]
+
+* Color blindness affects around 8% of men and 0.5% of women, most commonly red–green (deuteranopia)
+* Avoid red-green or red–brown combinations; use color-blind safe palettes `viridis`, `cividis`, `magma`, `inferno`; combine color with shape, label, or size — never rely on color alone
+
+```{r echo = FALSE, fig.width = 6, fig.asp = 0.618, out.width = "100%", fig.align = "center", fig.retina = 3}
+
+knitr::include_url("https://davidmathlogic.com/colorblind/#%23D81B60-%231E88E5-%23FFC107-%23004D40", height = "300px")
+```
+]
+
+.panel[.panel-name[📦 emilhvitfeldt]
+
+```{r echo = FALSE, fig.width = 6, fig.asp = 0.618, out.width = "100%", fig.align = "center", fig.retina = 3}
+knitr::include_url("https://emilhvitfeldt.github.io/r-color-palettes/discrete.html", height = "400px")
+```
+]
+
+]
+
+.left[.footnote[.small[Honorable mention: https://coolors.co; https://colorhunt.co; https://leonardocolor.io]]]
+
+---
+
+class: middle, inverse
+
+.pull-left[
+
+![:scale 90%](https://media.giphy.com/media/RDKPVBPMfNA7m/giphy.gif)
+]
+
+.pull-right[
+
+.large[
+<span style="color:orange">Introducing **ggplot2** in the context of the **tidyverse**!</span>
+]
+
+<br>
+
+.medium[
+<span style="color:orange">Please install and load the package:</span>
+]
+.medium[
+<span style="color:orange">**pacman::p_load(ggplot2)**</span>
+]
+]
+
+---
+
+# Basics
+
+To visualize your data, you assign variables to visual components—called **aesthetics**—such as `x`, `y`, `color`, or `size`, which are then interpreted by the chosen geometric object (**geom**). The structure below shows how to construct a plot in layers:
+
+<pre><code>ggplot(data = &lt;Data&gt;) +
+  &lt;Geom_Function&gt;(mapping = aes(&lt;Mappings&gt;),
+                  stat = &lt;Stat&gt;, position = &lt;Position&gt;) +
+  &lt;Coordinate_Function&gt; +
+  &lt;Facet_Function&gt; +
+  &lt;Scale_Function&gt; +
+  &lt;Theme_Function&gt;
+</code></pre>
+
+At a minimum, you need the dataset, a geom layer, and aesthetic mappings. Other components like `stat`, `position`, `coordinate`, `facet`, `scale`, and `theme` are optional—they have default behaviors that work in many common use cases.
+
+.left[.footnote[.small[Source: https://ggplot2.tidyverse.org/index.html; https://rstudio.github.io/cheatsheets/html/data-visualization.html]]]

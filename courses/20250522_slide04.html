@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>R Workshop – Session #03</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Arif P. Sulistiono | Task Force Data Analytics – DJPPR" />
+    <script src="20250522_slide04_files/header-attrs/header-attrs.js"></script>
+    <link href="20250522_slide04_files/remark-css/default.css" rel="stylesheet" />
+    <link href="20250522_slide04_files/remark-css/metropolis.css" rel="stylesheet" />
+    <link href="20250522_slide04_files/remark-css/metropolis-fonts.css" rel="stylesheet" />
+    <script src="20250522_slide04_files/clipboard/clipboard.min.js"></script>
+    <link href="20250522_slide04_files/xaringanExtra-clipboard/xaringanExtra-clipboard.css" rel="stylesheet" />
+    <script src="20250522_slide04_files/xaringanExtra-clipboard/xaringanExtra-clipboard.js"></script>
+    <script>window.xaringanExtraClipboard(null, {"button":"<i class=\"fa fa-clipboard\"><\/i>","success":"<i class=\"fa fa-check\" style=\"color: #90BE6D\"><\/i>","error":"<i class=\"fa fa-times-circle\" style=\"color: #F94144\"><\/i>"})</script>
+    <link href="20250522_slide04_files/font-awesome/css/all.min.css" rel="stylesheet" />
+    <link href="20250522_slide04_files/font-awesome/css/v4-shims.min.css" rel="stylesheet" />
+    <link href="20250522_slide04_files/panelset/panelset.css" rel="stylesheet" />
+    <script src="20250522_slide04_files/panelset/panelset.js"></script>
+    <script src="20250522_slide04_files/freezeframe/freezeframe.min.js"></script>
+    <script src="20250522_slide04_files/xaringanExtra-freezeframe/freezeframe-init.js"></script>
+    <script id="xaringanExtra-freezeframe-options" type="application/json">{"selector":"img[src$=\"gif\"]","trigger":"click","overlay":false,"responsive":true,"warnings":true}</script>
+    <link href="20250522_slide04_files/xaringanExtra-extra-styles/xaringanExtra-extra-styles.css" rel="stylesheet" />
+    <script src="20250522_slide04_files/xaringanExtra-progressBar/progress-bar.js"></script>
+    <link rel="stylesheet" href="custom.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# R Workshop – Session #03
+]
+.subtitle[
+## Data Visualization with R
+]
+.author[
+### Arif P. Sulistiono | Task Force Data Analytics – DJPPR
+]
+.date[
+### <br>Tuesday, 22 May 2025<br> <a href="https://github.com/arifpras/tfda-djppr/tree/main"> <i class="fa-brands fa-github"></i> tfda.djppr </a>
+]
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<style>.xe__progress-bar__container {
+  top:0;
+  opacity: 1;
+  position:absolute;
+  right:0;
+  left: 0;
+}
+.xe__progress-bar {
+  height: 0.25em;
+  background-color: orange;
+  width: calc(var(--slide-current) / var(--slide-total) * 100%);
+}
+.remark-visible .xe__progress-bar {
+  animation: xe__progress-bar__wipe 200ms forwards;
+  animation-timing-function: cubic-bezier(.86,0,.07,1);
+}
+@keyframes xe__progress-bar__wipe {
+  0% { width: calc(var(--slide-previous) / var(--slide-total) * 100%); }
+  100% { width: calc(var(--slide-current) / var(--slide-total) * 100%); }
+}</style>
+
+# Color Theory
+
+.panelset[
+
+.panel[.panel-name[✅ Sequential Color Scales]
+
+* Used for ordered numeric data (e.g., income, temperature, score)  
+* Color intensity increases with the value (light → dark, low → high)  
+* Coding: `ggplot(...) + scale_fill_viridis_c()`
+
+&lt;iframe src="https://spectrum.adobe.com/static/images1x/data-vis-color_options_sequential_desktop@2x_1649353411210.png" width="100%" height="300px" data-external="1"&gt;&lt;/iframe&gt;
+]
+
+.panel[.panel-name[🔁 Diverging Color Scales]
+* Used when data has a meaningful midpoint (e.g., zero, average, baseline).
+* Two hues diverge from a neutral center. Best for: political leanings (e.g., left vs right)
+* Coding: `ggplot(...) + scale_fill_gradient2(low = "blue", mid = "white", high = "red")`
+
+&lt;iframe src="https://spectrum.adobe.com/static/images1x/data-vis-color_options_diverging_desktop@2x_1649353411310.png" width="100%" height="300px" data-external="1"&gt;&lt;/iframe&gt;
+]
+
+.panel[.panel-name[🟦🔴 Qualitative Color Scales]
+* Used for categorical or nominal data (e.g., regions, product types).
+* Colors should be distinct but not imply order or magnitude.
+* Coding: `ggplot(...) + scale_fill_brewer(palette = "Set1")`
+
+&lt;iframe src="https://spectrum.adobe.com/static/images/data-vis-color_options_categorical_desktop@2x_1649353411121.png" width="100%" height="300px" data-external="1"&gt;&lt;/iframe&gt;
+]
+
+]
+
+.left[.footnote[.small[Source: https://spectrum.adobe.com/page/color-for-data-visualization/; https://www.datawrapper.de/blog/quantitative-vs-qualitative-color-scales]]]
+
+---
+
+# Color Palette
+
+.panelset[
+
+.panel[.panel-name[🧿 Color Blind–Friendly Visualization]
+
+* Color blindness affects around 8% of men and 0.5% of women, most commonly red–green (deuteranopia)
+* Avoid red-green or red–brown combinations; use color-blind safe palettes `viridis`, `cividis`, `magma`, `inferno`; combine color with shape, label, or size — never rely on color alone
+
+&lt;iframe src="https://davidmathlogic.com/colorblind/#%23D81B60-%231E88E5-%23FFC107-%23004D40" width="100%" height="300px" data-external="1"&gt;&lt;/iframe&gt;
+]
+
+.panel[.panel-name[📦 emilhvitfeldt]
+
+&lt;iframe src="https://emilhvitfeldt.github.io/r-color-palettes/discrete.html" width="100%" height="400px" data-external="1"&gt;&lt;/iframe&gt;
+]
+
+]
+
+.left[.footnote[.small[Honorable mention: https://coolors.co; https://colorhunt.co; https://leonardocolor.io]]]
+
+---
+
+class: middle, inverse
+
+.pull-left[
+
+![:scale 90%](https://media.giphy.com/media/RDKPVBPMfNA7m/giphy.gif)
+]
+
+.pull-right[
+
+.large[
+&lt;span style="color:orange"&gt;Introducing **ggplot2** in the context of the **tidyverse**!&lt;/span&gt;
+]
+
+&lt;br&gt;
+
+.medium[
+&lt;span style="color:orange"&gt;Please install and load the package:&lt;/span&gt;
+]
+.medium[
+&lt;span style="color:orange"&gt;**pacman::p_load(ggplot2)**&lt;/span&gt;
+]
+]
+
+---
+
+# Basics
+
+To visualize your data, you assign variables to visual components—called **aesthetics**—such as `x`, `y`, `color`, or `size`, which are then interpreted by the chosen geometric object (**geom**). The structure below shows how to construct a plot in layers:
+
+&lt;pre&gt;&lt;code&gt;ggplot(data = &amp;lt;Data&amp;gt;) +
+  &amp;lt;Geom_Function&amp;gt;(mapping = aes(&amp;lt;Mappings&amp;gt;),
+                  stat = &amp;lt;Stat&amp;gt;, position = &amp;lt;Position&amp;gt;) +
+  &amp;lt;Coordinate_Function&amp;gt; +
+  &amp;lt;Facet_Function&amp;gt; +
+  &amp;lt;Scale_Function&amp;gt; +
+  &amp;lt;Theme_Function&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+At a minimum, you need the dataset, a geom layer, and aesthetic mappings. Other components like `stat`, `position`, `coordinate`, `facet`, `scale`, and `theme` are optional—they have default behaviors that work in many common use cases.
+
+.left[.footnote[.small[Source: https://ggplot2.tidyverse.org/index.html; https://rstudio.github.io/cheatsheets/html/data-visualization.html]]]
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script src="https://platform.twitter.com/widgets.js"></script>
+<script>var slideshow = remark.create({
+  "slideNumberFormat": "%current%",
+  "highlightStyle": "github",
+  "highlightLines": true,
+  "ratio": "16:9",
+  "countIncrementalSlides": true
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
