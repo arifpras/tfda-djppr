@@ -29,7 +29,7 @@ pacman::p_load(tidyverse, readr, magrittr, ggthemes, tictoc, janitor, stringr)
 getwd()
 ```
 
-```{r load_01}
+```{r load_1}
 # data/2023-24/gws/merged_gw.csv --> raw
 
 tic()
@@ -894,6 +894,8 @@ waffle01 <- waffle::waffle(
   title = "Top 200 FPL Players by Position, 2023/2024",
   legend_pos = "bottom"
 )
+
+waffle01
 ```
 
 ```{r waffle02}
@@ -944,6 +946,8 @@ waffle02 <- ggplot(waffle_layout, aes(x = x, y = y, fill = position)) +
     plot.subtitle = element_text(size = 11, hjust = 0.5),
     legend.position = "top"
   )
+
+waffle02
 ```
 
 ```{r cluster}
@@ -1208,6 +1212,5 @@ ggsave(
   units = "mm"
 )
 ```
-
 
 --- END ---
