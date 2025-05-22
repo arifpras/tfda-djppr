@@ -713,7 +713,7 @@ dumbbell04
 
 ```{r pitch}
 # === Load packages ===
-pacman::p_load(ggplot2, ggrepel, ggsoccer, dplyr, tidyr, forcats, egg, ggpubr)
+pacman::p_load(ggplot2, ggrepel, ggsoccer, dplyr, tidyr, forcats, egg, ggpubr, tidytext)
 
 # === Step 1: Visual exploration to guide formation choice -- col/bar ===
 pitch01a <- players18 %>%
@@ -990,11 +990,11 @@ numeric_data <- players18 %>%
 # === 1. GGally::ggpairs() — Pairwise scatterplots, histograms, and correlations ===
 ggpairs(
   numeric_data,
-  ggtheme = theme_bw(),  # Clean theme
-  lower = list(continuous = wrap("points", alpha = 0.6)),  # Scatterplots
-  upper = list(continuous = wrap("cor", size = 4)),        # Correlation values
-  diag  = list(continuous = wrap("barDiag", bins = 10))    # Histograms
-)
+  lower = list(continuous = wrap("points", alpha = 0.6)),
+  upper = list(continuous = wrap("cor", size = 4)),
+  diag  = list(continuous = wrap("barDiag", bins = 10))
+) +
+  theme_bw()
 
 # === 2. corrplot — Static, colored correlation heatmap with hierarchical ordering ===
 cor_mat <- cor(numeric_data)
@@ -1189,7 +1189,7 @@ plot_point
 
 ```{r save_png}
 ggsave(
-  filename = "20250522_course01_plot01.png",
+  filename = "20250522_plot01.png",
   plot = plot_point,
   width = 3840,
   height = 2160,
@@ -1199,14 +1199,14 @@ ggsave(
 ```
 
 ```{r save_pdf}
-# ggsave(
-#   filename = "20250522_rcourse_plot01.pdf",
-#   plot = plot_point,
-#   device = cairo_pdf,
-#   width = 297,
-#   height = 210,
-#   units = "mm"
-# )
+ggsave(
+  filename = "20250522_plot01.pdf",
+  plot = plot_point,
+  device = cairo_pdf,
+  width = 297,
+  height = 210,
+  units = "mm"
+)
 ```
 
 

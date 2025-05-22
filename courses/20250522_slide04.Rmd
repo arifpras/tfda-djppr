@@ -301,6 +301,7 @@ plain02
 .pull-left[
 ```{r}
 pacman::p_load(ggplot2, tidyverse)
+
 plain03 <- dbcombine02 %>% 
   filter(position_long == "03mid") %>% 
   ggplot() + 
@@ -628,6 +629,32 @@ col04
 
 ]
 
+---
+
+# Applying a Custom Theme and Saving Plots
+
+### Load pre-defined ggplot2 themes from GitHub
+`devtools::source_url("https://raw.githubusercontent.com/arifpras/themesAPS/main/themesAPS?raw=TRUE")`
+
+### Save plot to high-resolution PNG (4K)
+`ggsave(`
+  `filename = "20250522_col04.png",`
+  `plot = col02,`
+  `width = 3840,`
+  `height = 2160,`
+  `units = "px",`
+  `dpi = 300`
+`)`
+
+### Save plot to A4-sized PDF
+`ggsave(`
+  `filename = "20250522_col04.pdf",`
+  `plot = col04,`
+  `device = cairo_pdf,`
+  `width = 297,`
+  `height = 210,`
+  `units = "mm"`
+`)`
 
 ---
 
