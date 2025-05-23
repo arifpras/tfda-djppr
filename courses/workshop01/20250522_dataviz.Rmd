@@ -209,6 +209,7 @@ At a minimum, you need the dataset, a geom layer, and aesthetic mappings. Other 
 
 ```{r}
 pacman::p_load(tidyverse, gt, skimr)
+
 players04 <- read_csv("https://raw.githubusercontent.com/arifpras/tfda-djppr/refs/heads/main/courses/workshop01/players04.csv", show_col_types = FALSE)
 
 players04 %>%
@@ -221,6 +222,7 @@ players04 %>%
 
 ```{r}
 pacman::p_load(tidyverse, DT, skimr)
+
 players18 <- read_csv("https://raw.githubusercontent.com/arifpras/tfda-djppr/refs/heads/main/courses/workshop01/players18.csv", show_col_types = FALSE)
 
 players18 %>%
@@ -670,7 +672,7 @@ class: center, middle, clear
 
 .small[
 All teaching materials will be available at:<br>
-**[`https://github.com/arifpras/tfda-djppr/tree/main/courses`]**
+**[`https://github.com/arifpras/tfda-djppr/tree/main/courses`](https://github.com/arifpras/tfda-djppr/tree/main/courses)**
 ]
 
 .small[
